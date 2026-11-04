@@ -117,7 +117,14 @@ func (a *App) handleKeys(c *ui.Context) {
 	// A focused button keeps Enter and Space, so these only mean "next word"
 	// while the focus is elsewhere.
 	if a.game.IsWordOver() && (c.Shortcut(0, ui.KeyEnter) || c.Shortcut(0, ui.KeySpace)) {
-		a.nextWord()
+		switch {
+		case !a.game.IsMatchOver():
+			a.nextWord()
+		case a.summaryShown:
+			a.playAgain()
+		default:
+			a.showSummary()
+		}
 	}
 	for i := range 26 {
 		key := ui.KeyA + ui.Key(i)
@@ -165,7 +172,7 @@ func eyebrow(c *ui.Context, p palette, text string) ui.Element {
 // shortcut to someone who already suspects there is one.
 func (a *App) shortcutBar(c *ui.Context, p palette) {
 	ui.Row(c).Wrap().Justify(ui.Center).Gap(18).Padding(8, 20).Opacity(0.85).Children(func() {
-		for _, h := range shortcutLegend(a.game, a.clueShown) {
+		for _, h := range shortcutLegend(a.game, a.clueShown, a.summaryShown) {
 			entry := ui.Row(c).Gap(6).AlignItems(ui.Center)
 			if !h.live {
 				entry.Opacity(0.4)

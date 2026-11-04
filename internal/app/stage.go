@@ -10,7 +10,22 @@ import (
 // gallows, the word under it, and the keyboard, which the result card takes
 // the place of once the word is over.
 func (a *App) stage(c *ui.Context, p palette) {
-	ui.Column(c).Grow(1).AlignItems(ui.Center).Padding(4, stagePad, 12).Children(func() {
+	// The stage and the match's summary take turns filling the scene: the
+	// one going shrinks back and fades as the other comes forward.
+	ui.Box(c.Key("scene")).Grow(1).Children(func() {
+		if a.summaryShown {
+			ui.Column(c.Key("summary")).Absolute().Top(0).Left(0).Right(0).Bottom(0).Transition(sceneSwap).
+				Children(func() { a.summary(c, p) })
+			return
+		}
+		ui.Column(c.Key("play")).Absolute().Top(0).Left(0).Right(0).Bottom(0).Transition(sceneSwap).
+			Children(func() { a.board(c, p) })
+	})
+}
+
+// board is the game itself.
+func (a *App) board(c *ui.Context, p palette) {
+	ui.Column(c).Fill().AlignItems(ui.Center).Padding(4, stagePad, 12).Children(func() {
 		ui.Column(c).FillHeight().FillWidth().MaxWidth(stageW).AlignItems(ui.Center).Gap(10).Children(func() {
 			drawGallows(c, p, a.game.WrongGuesses(), a.game.GuessBudget())
 			a.pips(c, p)
@@ -319,16 +334,15 @@ func (a *App) result(c *ui.Context, p palette) {
 			ui.Text(c, headline).FontSize(20).Bold().TextColor(tone)
 			ui.Text(c, "The word was "+a.game.Word()).TextColor(p.Text)
 		})
-		if summary := matchSummary(a.game, a.session); summary != nil {
-			// The match is over, so there is no next word to deal. The score
-			// takes the button's place.
-			color := p.Danger
-			if summary.good {
-				color = p.Success
-			}
-			ui.Column(c).Gap(2).Children(func() {
-				ui.Text(c, summary.text).Bold().TextColor(color)
-				ui.Text(c, "Pick a difficulty to start a new match.").FontSize(13).TextColor(p.TextMuted)
+		if a.game.IsMatchOver() {
+			// The last word of the match: the button leads to its summary
+			// rather than to a next word there is not.
+			ui.Row(c).AlignItems(ui.Center).Gap(12).Children(func() {
+				ui.Text(c, "That was the last word of the match.").FontSize(13).TextColor(p.TextMuted)
+				ui.Spacer(c)
+				if ui.PrimaryButton(c.Key("see-match"), "See the match").Padding(10, 22).Tooltip("See the match (Enter)").Clicked() {
+					a.showSummary()
+				}
 			})
 			return
 		}

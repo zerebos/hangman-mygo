@@ -63,6 +63,12 @@ type App struct {
 	// deal counts the words dealt, so the word on the board has a fresh
 	// identity each time and the old one slides away as the new one comes.
 	deal int
+	// summaryShown is whether the finished match's summary screen is up,
+	// in place of the stage. It stays down until the player asks for it, so
+	// the last word's result is seen first.
+	summaryShown bool
+	// confetti is the burst a won match's summary throws.
+	confetti []piece
 	// confirmReset is whether the Reset stats question is open.
 	confirmReset bool
 	// toast is a message for the view to show as a toast on its next build,
@@ -194,9 +200,29 @@ func (a *App) nextWord() {
 	}
 }
 
+// showSummary puts the finished match's summary on screen.
+func (a *App) showSummary() {
+	if !a.game.IsMatchOver() || a.summaryShown {
+		return
+	}
+	a.summaryShown = true
+	if a.game.MatchOutcome() == game.MatchWon {
+		a.confetti = newConfetti()
+	}
+}
+
+// playAgain starts a new match on the difficulty just finished. A list of
+// your own has no difficulty to replay, and its file is not kept.
+func (a *App) playAgain() {
+	if d := a.game.Difficulty(); d != game.NoDifficulty && a.game.IsMatchOver() {
+		a.setDifficulty(d)
+	}
+}
+
 // freshWord clears what belongs to the word that is gone.
 func (a *App) freshWord(n *notice) {
 	a.deal++
+	a.summaryShown = false
 	a.notice = n
 	a.lastGuess = 0
 	a.clueShown = false

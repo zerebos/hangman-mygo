@@ -230,3 +230,50 @@ func chooseDifficulty(t *testing.T, a *App, tt *ui.Tester, label string) {
 		t.Fatalf("the menu is still open after choosing %q", label)
 	}
 }
+
+// The last word's result shows first; Enter opens the summary, whose numbers
+// count up to the match's, and Enter again plays the difficulty again.
+func TestAMatchEndsOnItsSummaryAndEnterPlaysItAgain(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	for a.game.WordNumber() < a.game.TotalWords() {
+		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Key(0, ui.KeyEnter)
+	}
+	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Advance(time.Second)
+	if a.summaryShown || !tt.HasText("See the match") {
+		t.Fatalf("the last word skipped its result: %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEnter)
+	tt.Advance(3 * time.Second)
+	if !a.summaryShown || !tt.HasText("You lost the match") || !tt.HasText("10") {
+		t.Fatalf("summary %q", tt.Texts())
+	}
+	if tt.FramePending() {
+		t.Error("the summary kept asking for frames once its numbers had counted up")
+	}
+	tt.Key(0, ui.KeyEnter)
+	if a.summaryShown || a.game.IsMatchOver() || a.game.WordNumber() != 1 || a.game.Difficulty() != game.Easy {
+		t.Errorf("after Play again: summary %v, word %d", a.summaryShown, a.game.WordNumber())
+	}
+}
+
+// A won match throws confetti, and the confetti settles too.
+func TestAWonMatchThrowsConfettiThatLands(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	g, err := game.FromWordsWithSeed(1, "AB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.game = g
+	tt.Key(0, ui.KeyA)
+	tt.Key(0, ui.KeyB)
+	tt.Key(0, ui.KeyEnter)
+	if !a.summaryShown || len(a.confetti) == 0 {
+		t.Fatalf("summary %v, confetti %d", a.summaryShown, len(a.confetti))
+	}
+	tt.Advance(4 * time.Second)
+	if tt.FramePending() {
+		t.Error("the confetti never landed")
+	}
+}

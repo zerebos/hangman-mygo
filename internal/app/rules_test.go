@@ -72,8 +72,12 @@ func TestTheResetWarningDoesNotThreatenAnEmptyTally(t *testing.T) {
 }
 
 func legendOf(g *game.Game, clueShown bool) map[shortcut]bool {
+	return legendWith(g, clueShown, false)
+}
+
+func legendWith(g *game.Game, clueShown, summaryShown bool) map[shortcut]bool {
 	out := map[shortcut]bool{}
-	for _, e := range shortcutLegend(g, clueShown) {
+	for _, e := range shortcutLegend(g, clueShown, summaryShown) {
 		out[e.shortcut] = e.live
 	}
 	return out
@@ -119,6 +123,28 @@ func TestAFinishedMatchStopsOfferingEnter(t *testing.T) {
 	g.GiveUp()
 	if _, listed := legendOf(g, false)[shortcutNextWord]; listed {
 		t.Error("Enter offered with no next word to deal")
+	}
+}
+
+// Enter takes the player from the last word to the summary, and from the
+// summary to a new match, and the legend says which.
+func TestAFinishedMatchOffersEnterUnderTheNameOfWhatItDoes(t *testing.T) {
+	g := game.New(game.Easy)
+	for !g.IsMatchOver() {
+		g.GiveUp()
+		g.NextWord()
+	}
+	if !legendWith(g, false, false)[shortcutSeeMatch] {
+		t.Error("the last word does not offer the summary")
+	}
+	if got := legendWith(g, false, true); !got[shortcutPlayAgain] || got[shortcutSeeMatch] {
+		t.Errorf("the summary offers %v", got)
+	}
+	// A list of your own has no difficulty to play again.
+	list := mustWords(t, "ALPHA")
+	list.GiveUp()
+	if _, listed := legendWith(list, false, true)[shortcutPlayAgain]; listed {
+		t.Error("Play again offered for a list of your own")
 	}
 }
 

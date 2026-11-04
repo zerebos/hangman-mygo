@@ -118,6 +118,29 @@ func TestShots(t *testing.T) {
 		tt.Frame()
 		tt.Advance(150 * time.Millisecond)
 		shot(tt, "mid-win"+suffix)
+
+		// A won match's summary: counting up under the confetti, then at rest.
+		short, err := game.FromWordsWithSeed(3, "AB", "CD", "EF")
+		if err != nil {
+			t.Fatal(err)
+		}
+		a.game = short
+		tt.Frame()
+		for !a.game.IsMatchOver() {
+			for _, r := range a.game.Word() {
+				a.guess(r)
+			}
+			if a.game.WordNumber() == 2 {
+				a.giveUp()
+			}
+			a.nextWord()
+		}
+		a.showSummary()
+		tt.Frame()
+		tt.Advance(600 * time.Millisecond)
+		shot(tt, "summary-mid"+suffix)
+		tt.Advance(4 * time.Second)
+		shot(tt, "summary"+suffix)
 	}
 }
 

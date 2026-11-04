@@ -102,11 +102,18 @@ var (
 		AfterExits: true,
 	}
 	// wordSwap slides the old word up and out as the next comes up from
-	// below, through a short blur.
+	// below.
 	wordSwap = ui.ElementTransition{
 		Animation: &ui.Smooth,
-		Enter:     &ui.Motion{Y: 14, Blur: 6},
-		Exit:      &ui.Motion{Y: -14, Blur: 6},
+		Enter:     &ui.Motion{Y: 14},
+		Exit:      &ui.Motion{Y: -14},
+	}
+	// sceneSwap trades the stage for the match's summary and back: the one
+	// going sinks back and fades as the other comes forward.
+	sceneSwap = ui.ElementTransition{
+		Animation: &ui.Smooth,
+		Enter:     &ui.Motion{Scale: 1.04},
+		Exit:      &ui.Motion{Scale: 0.96},
 	}
 	// clueReveal opens the clue's line and fades it in.
 	clueReveal = ui.ElementTransition{

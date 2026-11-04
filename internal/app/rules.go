@@ -135,6 +135,8 @@ const (
 	shortcutChangeWord
 	shortcutOpenWordList
 	shortcutNextWord
+	shortcutSeeMatch
+	shortcutPlayAgain
 )
 
 func (s shortcut) label() string {
@@ -147,6 +149,10 @@ func (s shortcut) label() string {
 		return "Give up on this word"
 	case shortcutOpenWordList:
 		return "Open a word list"
+	case shortcutSeeMatch:
+		return "See the match"
+	case shortcutPlayAgain:
+		return "Play again"
 	}
 	return "Next word"
 }
@@ -160,18 +166,23 @@ type legendEntry struct {
 }
 
 // shortcutLegend is what the legend lists for the game in hand. The four
-// standing shortcuts are always there; Next word only while it works.
-func shortcutLegend(g *game.Game, clueShown bool) []legendEntry {
+// standing shortcuts are always there. Enter is listed only while it does
+// something, under the name of what it does: the next word, the match's
+// summary once the last word is over, and a new match from the summary.
+func shortcutLegend(g *game.Game, clueShown, summaryShown bool) []legendEntry {
 	hints := []legendEntry{
 		{shortcutHint, g.CanHint()},
 		{shortcutClue, canShowClue(g, clueShown)},
 		{shortcutChangeWord, !g.IsWordOver()},
 		{shortcutOpenWordList, true},
 	}
-	// Exactly when NextWord deals a word, so the legend never offers Enter
-	// while the result panel shows the match summary instead.
-	if g.IsWordOver() && !g.IsMatchOver() {
+	switch {
+	case g.IsWordOver() && !g.IsMatchOver():
 		hints = append(hints, legendEntry{shortcutNextWord, true})
+	case g.IsMatchOver() && !summaryShown:
+		hints = append(hints, legendEntry{shortcutSeeMatch, true})
+	case g.IsMatchOver() && g.Difficulty() != game.NoDifficulty:
+		hints = append(hints, legendEntry{shortcutPlayAgain, true})
 	}
 	return hints
 }
