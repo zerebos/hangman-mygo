@@ -2,15 +2,36 @@
 // device and no mygo in it, so the cues can be tested like any other code.
 // The game hands the samples to mygo's audio package to play.
 //
-// The palette is a soft wooden pluck, like a marimba bar, on a pentatonic
-// scale, so any notes played together or in a row agree with each other. A
-// wrong guess is a muted knock under a short marker scratch.
+// There are two palettes. Wood is a soft wooden pluck, like a marimba bar,
+// on a pentatonic scale, so any notes played together or in a row agree; a
+// wrong guess is a muted knock under a short marker scratch. Paper is a
+// pencil on paper: taps, check marks, strokes and crumpling, with no notes
+// at all.
 package sounds
 
 import (
 	"math"
 	"math/rand/v2"
 )
+
+// Palette is one set of the game's cues. step counts the right letters of
+// the word so far, from 0, and count is how many cells the letter fills.
+type Palette struct {
+	Name       string
+	Right      func(step, count int) []float32
+	Wrong      func() []float32
+	Hint       func(step, count int) []float32
+	WordWon    func() []float32
+	WordLost   func() []float32
+	MatchWon   func() []float32
+	MatchEnded func() []float32
+}
+
+// Wood is the marimba palette.
+var Wood = Palette{
+	Name: "wood", Right: woodRight, Wrong: woodWrong, Hint: woodHint,
+	WordWon: woodWordWon, WordLost: woodWordLost, MatchWon: woodMatchWon, MatchEnded: woodMatchEnded,
+}
 
 // Rate is the sample rate of every cue: mygo's output rate, so nothing is
 // resampled on the way out.
@@ -151,11 +172,11 @@ func scratch(seconds float64) buffer {
 	return b
 }
 
-// Right is a right letter: the step-th pluck up the scale, one step for each
+// woodRight is a right letter: the step-th pluck up the scale, one step for each
 // right letter of the word so far, so a word being solved is heard climbing.
 // A letter filling count cells plucks count times, a beat apart, as its
 // letters fly into the word one after another.
-func Right(step, count int) []float32 {
+func woodRight(step, count int) []float32 {
 	count = max(count, 1)
 	const apart = 0.045
 	b := newBuffer(0.9 + apart*float64(count-1))
@@ -166,20 +187,20 @@ func Right(step, count int) []float32 {
 	return b.samples(0.55)
 }
 
-// Wrong is a wrong letter: a knock, with the scratch of the pen drawing the
+// woodWrong is a wrong letter: a knock, with the scratch of the pen drawing the
 // new part on top of it.
-func Wrong() []float32 {
+func woodWrong() []float32 {
 	b := newBuffer(0.55)
 	b.mix(knock(98), 0, 1)
 	b.mix(scratch(0.45), 0.02, 0.35)
 	return b.samples(0.6)
 }
 
-// Hint is a letter bought with a guess: the right-letter pluck, with a
+// woodHint is a letter bought with a guess: the right-letter pluck, with a
 // little shimmer two octaves above it to mark it as given rather than found.
-func Hint(step, count int) []float32 {
+func woodHint(step, count int) []float32 {
 	f := freq(scaleNote(step))
-	right := Right(step, count)
+	right := woodRight(step, count)
 	b := newBuffer(max(float64(len(right))/Rate, 0.7))
 	for i, v := range right {
 		b[i] += float64(v)
@@ -206,16 +227,16 @@ func chord(notes []int, at, ring float64, b buffer) {
 	}
 }
 
-// WordWon is a word solved: a quick rising arpeggio that lands on a chord.
-func WordWon() []float32 {
+// woodWordWon is a word solved: a quick rising arpeggio that lands on a chord.
+func woodWordWon() []float32 {
 	b := phrase([]int{72, 76, 79}, 0.07, 1.2)
 	chord([]int{72, 76, 79, 84}, 0.21, 1.4, b)
 	return b.samples(0.7)
 }
 
-// WordLost is a word lost: three soft notes stepping down in a minor key,
+// woodWordLost is a word lost: three soft notes stepping down in a minor key,
 // slower than the win, sad rather than comic.
-func WordLost() []float32 {
+func woodWordLost() []float32 {
 	b := newBuffer(1.6)
 	for i, note := range []int{64, 60, 57} {
 		b.mix(pluck(freq(note), 1.1, 0.5), 0.22*float64(i), 0.9-0.15*float64(i))
@@ -223,9 +244,9 @@ func WordLost() []float32 {
 	return b.samples(0.55)
 }
 
-// MatchWon is a match won, played with the confetti: a longer phrase up the
+// woodMatchWon is a match won, played with the confetti: a longer phrase up the
 // scale that ends on a held chord.
-func MatchWon() []float32 {
+func woodMatchWon() []float32 {
 	b := phrase([]int{67, 72, 76, 79, 84}, 0.09, 1.0)
 	b2 := newBuffer(float64(len(b))/Rate + 1.8)
 	b2.mix(b, 0, 1)
@@ -233,8 +254,8 @@ func MatchWon() []float32 {
 	return b2.samples(0.75)
 }
 
-// MatchEnded is a match lost or tied: a gentle close, two notes coming home.
-func MatchEnded() []float32 {
+// woodMatchEnded is a match lost or tied: a gentle close, two notes coming home.
+func woodMatchEnded() []float32 {
 	b := newBuffer(1.8)
 	b.mix(pluck(freq(67), 1.2, 0.6), 0, 0.9)
 	chord([]int{60, 64, 67}, 0.3, 1.5, b)

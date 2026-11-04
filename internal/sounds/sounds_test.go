@@ -5,21 +5,27 @@ import (
 	"testing"
 )
 
-// cues is every cue, by name, as the game asks for them.
+// cues is every cue of every palette, by name, as the game asks for them.
 func cues() map[string][]float32 {
-	return map[string][]float32{
-		"right":       Right(0, 1),
-		"right high":  Right(14, 1),
-		"right x3":    Right(3, 3),
-		"right x9":    Right(3, 9),
-		"wrong":       Wrong(),
-		"hint":        Hint(2, 1),
-		"hint x9":     Hint(2, 9),
-		"word won":    WordWon(),
-		"word lost":   WordLost(),
-		"match won":   MatchWon(),
-		"match ended": MatchEnded(),
+	out := map[string][]float32{}
+	for _, p := range []Palette{Wood, Paper} {
+		for name, s := range map[string][]float32{
+			"right":       p.Right(0, 1),
+			"right high":  p.Right(14, 1),
+			"right x3":    p.Right(3, 3),
+			"right x9":    p.Right(3, 9),
+			"wrong":       p.Wrong(),
+			"hint":        p.Hint(2, 1),
+			"hint x9":     p.Hint(2, 9),
+			"word won":    p.WordWon(),
+			"word lost":   p.WordLost(),
+			"match won":   p.MatchWon(),
+			"match ended": p.MatchEnded(),
+		} {
+			out[p.Name+" "+name] = s
+		}
 	}
+	return out
 }
 
 // Every cue is short, never clips, starts without a click and ends in
@@ -73,8 +79,10 @@ func TestTheRightLetterClimbs(t *testing.T) {
 
 // Plucking a letter several times takes longer, a beat per extra cell.
 func TestALetterInSeveralCellsPlucksEachOfThem(t *testing.T) {
-	one, three := len(Right(0, 1)), len(Right(0, 3))
-	if three <= one {
-		t.Errorf("three plucks %d samples, one %d", three, one)
+	for _, p := range []Palette{Wood, Paper} {
+		one, three := len(p.Right(0, 1)), len(p.Right(0, 3))
+		if three <= one {
+			t.Errorf("%s: three plucks %d samples, one %d", p.Name, three, one)
+		}
 	}
 }
