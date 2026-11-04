@@ -66,10 +66,18 @@ func (a *App) View(c *ui.Context) {
 	ui.Column(c).Fill().Children(func() {
 		a.header(c, p)
 		// The stats drawer pushes the stage aside rather than lying over it,
-		// so nothing on the board is ever hidden behind it.
-		ui.Row(c).Grow(1).AlignItems(ui.Stretch).Children(func() {
+		// so nothing on the board is ever hidden behind it. Its width springs
+		// open and shut, and the keys read the same value, so they shrink in
+		// step with it rather than jumping when it opens.
+		body := ui.Row(c.Key("body")).Grow(1).AlignItems(ui.Stretch)
+		target := float32(0)
+		if a.showStats {
+			target = 1
+		}
+		a.drawerShown = body.AnimateTo("drawer", target, ui.Smooth)
+		body.Children(func() {
 			a.stage(c, p)
-			if a.showStats {
+			if a.drawerShown > 0.001 {
 				a.drawer(c, p)
 			}
 		})
@@ -85,9 +93,7 @@ func (a *App) View(c *ui.Context) {
 // rows of thirteen across the stage, within minKey and maxKey.
 func (a *App) keySize(c *ui.Context) float32 {
 	w, _ := c.Size()
-	if a.showStats {
-		w -= drawerW
-	}
+	w -= drawerW * a.drawerShown
 	room := min(w, stageW) - 2*stagePad
 	return min(max((room-(keysPerRow-1)*keyGap)/keysPerRow, minKey), maxKey)
 }

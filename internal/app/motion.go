@@ -76,3 +76,42 @@ func once(e ui.Element, key string, run int, d time.Duration, ease ui.Easing) fl
 	return e.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: d, Value: 1, Ease: ease}},
 		ui.KeyframeOptions{Run: uint64(run)})
 }
+
+// The layout transitions. Each element of the stage glides to where the
+// layout puts it, at its size, so a row that changes height carries the
+// rest of the stage with it smoothly. A spring rather than a curve, so a
+// change that lands on its way turns smoothly instead of stopping dead.
+var (
+	glide = ui.ElementTransition{Animation: &ui.Snappy}
+
+	// keysSwap folds the keyboard down and away as the result card takes
+	// its place, and brings it back up for the next word. It is quick, so
+	// the card after it is not kept waiting.
+	keysSwap = ui.ElementTransition{
+		Animation:  &ui.Animation{Duration: 180 * time.Millisecond, Ease: ui.EaseOut},
+		Enter:      &ui.Motion{Y: 16, Scale: 0.97},
+		Exit:       &ui.Motion{Y: 10, Scale: 0.94},
+		AfterExits: true,
+	}
+	// cardSwap rises the result card into the keyboard's place once the
+	// keyboard has gone, so the two never lie across each other.
+	cardSwap = ui.ElementTransition{
+		Animation:  &ui.Snappy,
+		Enter:      &ui.Motion{Y: 24, Scale: 0.94},
+		Exit:       &ui.Motion{Y: 10, Scale: 0.96},
+		AfterExits: true,
+	}
+	// wordSwap slides the old word up and out as the next comes up from
+	// below, through a short blur.
+	wordSwap = ui.ElementTransition{
+		Animation: &ui.Smooth,
+		Enter:     &ui.Motion{Y: 14, Blur: 6},
+		Exit:      &ui.Motion{Y: -14, Blur: 6},
+	}
+	// clueReveal opens the clue's line and fades it in.
+	clueReveal = ui.ElementTransition{
+		Animation: &ui.Smooth,
+		Enter:     &ui.Motion{Collapse: true, Y: -6},
+		Exit:      &ui.Motion{Collapse: true},
+	}
+)

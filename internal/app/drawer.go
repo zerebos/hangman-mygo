@@ -11,8 +11,17 @@ import (
 // drawer is the lifetime stats, in a panel along the right edge beside the
 // stage, because the tally is worth reading while you play.
 func (a *App) drawer(c *ui.Context, p palette) {
+	// The outer box is as wide as the drawer is open and clips; the panel in
+	// it keeps its full width, so it slides in from the edge rather than
+	// being laid out anew at every width on the way.
+	ui.Box(c.Key("drawer")).Width(drawerW * a.drawerShown).Shrink(0).ClipX().Children(func() {
+		a.drawerPanel(c, p)
+	})
+}
+
+func (a *App) drawerPanel(c *ui.Context, p palette) {
 	s := a.session.Stats()
-	ui.Column(c.Key("drawer")).Width(drawerW).Shrink(0).Gap(16).Padding(18, 20).
+	ui.Column(c).Width(drawerW).FillHeight().Gap(16).Padding(18, 20).
 		Background(p.Surface.Alpha(0.5)).BorderWidth(0, 0, 0, 1).BorderColor(p.Border).Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "Lifetime stats").FontSize(16).Bold()

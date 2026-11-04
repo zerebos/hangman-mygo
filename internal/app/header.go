@@ -54,7 +54,9 @@ func chip(c *ui.Context, p palette, label, value string, color ui.Color) {
 	ui.Row(c.Key(label)).AlignItems(ui.Baseline).Gap(6).Padding(5, 12).Radius(999).
 		Background(p.Surface).Children(func() {
 		ui.Text(c, label).FontSize(11).TextColor(p.TextMuted).SingleLine()
-		ui.Text(c, value).FontSize(14).Bold().TextColor(color).SingleLine()
+		// The digits roll as they change, as a counter's do.
+		ui.Text(c.Key("value"), value).FontSize(14).Bold().TextColor(color).SingleLine().
+			ContentTransition(ui.ContentTransition{Numeric: true})
 	})
 }
 

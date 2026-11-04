@@ -56,6 +56,13 @@ type App struct {
 	clueShown bool
 	// showStats is whether the lifetime stats fold out under the board.
 	showStats bool
+	// drawerShown is how far open the stats drawer is drawn in this frame,
+	// from 0 to 1. View sets it from a spring before building the stage,
+	// which sizes its keys from it.
+	drawerShown float32
+	// deal counts the words dealt, so the word on the board has a fresh
+	// identity each time and the old one slides away as the new one comes.
+	deal int
 	// confirmReset is whether the Reset stats question is open.
 	confirmReset bool
 	// toast is a message for the view to show as a toast on its next build,
@@ -189,6 +196,7 @@ func (a *App) nextWord() {
 
 // freshWord clears what belongs to the word that is gone.
 func (a *App) freshWord(n *notice) {
+	a.deal++
 	a.notice = n
 	a.lastGuess = 0
 	a.clueShown = false

@@ -16,12 +16,19 @@ func (a *App) stage(c *ui.Context, p palette) {
 			a.pips(c, p)
 			a.word(c, p)
 			a.feedback(c, p)
-			if a.game.IsWordOver() {
-				a.result(c, p)
-			} else {
-				a.keyboard(c, p)
-				a.actions(c, p)
-			}
+			// The keyboard and the result card take turns in one slot. The
+			// one going folds away under the one coming, and the slot springs
+			// to the new one's height, which carries the rows above with it.
+			ui.Column(c.Key("bottom")).AlignItems(ui.Center).Transition(glide).Children(func() {
+				if a.game.IsWordOver() {
+					ui.Column(c.Key("result")).Transition(cardSwap).Children(func() { a.result(c, p) })
+				} else {
+					ui.Column(c.Key("keys")).AlignItems(ui.Center).Gap(keyGap).Transition(keysSwap).Children(func() {
+						a.keyboard(c, p)
+						a.actions(c, p)
+					})
+				}
+			})
 		})
 	})
 }
@@ -30,7 +37,7 @@ func (a *App) stage(c *ui.Context, p palette) {
 // with the count of guesses left beside them.
 func (a *App) pips(c *ui.Context, p palette) {
 	wrong, budget := a.game.WrongGuesses(), a.game.GuessBudget()
-	ui.Row(c).AlignItems(ui.Center).Gap(14).Children(func() {
+	ui.Row(c.Key("pips")).AlignItems(ui.Center).Gap(14).Transition(glide).Children(func() {
 		ui.Row(c).Gap(6).Children(func() {
 			for step := range budget {
 				fill := p.TextMuted.Alpha(0.25)
@@ -69,7 +76,17 @@ func (a *App) pips(c *ui.Context, p palette) {
 // word is the puzzle: the category above it, the letters, and the clue
 // under it once asked for.
 func (a *App) word(c *ui.Context, p palette) {
-	ui.Column(c).AlignItems(ui.Center).Gap(8).Padding(6, 0).Children(func() {
+	// The word has a fresh identity for every word dealt, so a new word
+	// slides in as the old one slides out rather than swapping on the spot.
+	ui.Box(c.Key("word-slot")).Transition(glide).Children(func() {
+		ui.Column(c.Key(a.deal)).AlignItems(ui.Center).Gap(8).Padding(6, 0).Transition(wordSwap).Children(func() {
+			a.wordBody(c, p)
+		})
+	})
+}
+
+func (a *App) wordBody(c *ui.Context, p palette) {
+	{
 		if category := a.game.Category(); category != "" {
 			ui.Text(c, category).FontSize(11).Bold().TextColor(p.TextMuted).Padding(2, 10).
 				Radius(999).Border(1, p.Border)
@@ -94,10 +111,13 @@ func (a *App) word(c *ui.Context, p palette) {
 				a.wordCell(c.Key(i), p, i, cell, fresh, lost)
 			}
 		})
+		// The clue opens a line for itself, so the rows under it move down
+		// to make room instead of jumping.
 		if clue := a.game.Clue(); a.clueShown && clue != "" {
-			ui.Text(c, clue).FontSize(14).Italic().TextAlign(ui.Center).TextColor(p.TextMuted).MaxWidth(560)
+			ui.Text(c.Key("clue"), clue).FontSize(14).Italic().TextAlign(ui.Center).TextColor(p.TextMuted).
+				MaxWidth(560).Transition(clueReveal)
 		}
-	})
+	}
 }
 
 // wordCell is one character of the word: the glyph, and the rule it sits on.
@@ -145,18 +165,21 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 // while there is nothing to report. A finished word says its piece in the
 // result card instead.
 func (a *App) feedback(c *ui.Context, p palette) {
-	ui.Row(c).Height(24).AlignItems(ui.Center).Children(func() {
-		if a.game.IsWordOver() {
-			return
-		}
-		if n := a.notice; n != nil {
-			color := p.Danger
+	ui.Row(c.Key("feedback")).Height(24).AlignItems(ui.Center).Transition(glide).Children(func() {
+		text, color, italic := idleHint, p.TextMuted, false
+		switch n := a.notice; {
+		case a.game.IsWordOver():
+			text = ""
+		case n != nil:
+			text, color, italic = n.text, p.Danger, true
 			if n.good {
 				color = p.Success
 			}
-			ui.Text(c, n.text).FontSize(13).Italic().TextColor(color)
-		} else {
-			ui.Text(c, idleHint).FontSize(13).TextColor(p.TextMuted)
+		}
+		// One text whose content crossfades as the notice changes.
+		line := ui.Text(c.Key("notice"), text).FontSize(13).TextColor(color).ContentTransition(ui.ContentTransition{})
+		if italic {
+			line.Italic()
 		}
 	})
 }

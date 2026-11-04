@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -80,6 +81,8 @@ func TestTheResetQuestionKeepsTheBoardOutOfItsWay(t *testing.T) {
 	a, tt, _ := tester(t, settings.Settings{Stats: stats.Stats{Points: 500, WordsWon: 3, BestStreak: 3}})
 	a.showStats = true
 	tt.Frame()
+	// The drawer springs open.
+	tt.Advance(time.Second)
 	if err := tt.Click("Reset stats"); err != nil {
 		t.Fatal(err)
 	}
@@ -153,6 +156,8 @@ func TestWinningPlaysTheWinCueAndScores(t *testing.T) {
 	if !a.game.IsWon() || cues.wins != 1 || a.session.MatchPoints() == 0 {
 		t.Errorf("won %v, cues %+v, points %d", a.game.IsWon(), cues, a.session.MatchPoints())
 	}
+	// The result card rises once the keyboard has folded away.
+	tt.Advance(time.Second)
 	if !tt.HasText("The word was " + a.game.Word()) {
 		t.Errorf("texts %q", tt.Texts())
 	}

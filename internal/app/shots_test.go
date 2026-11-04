@@ -51,6 +51,7 @@ func TestShots(t *testing.T) {
 		a.showStats = true
 		tt.SetSize(880, 660)
 		tt.Frame()
+		tt.Advance(time.Second)
 		if err := tt.Click(subtitle(a.game)); err != nil {
 			t.Fatal(err)
 		}
@@ -59,6 +60,7 @@ func TestShots(t *testing.T) {
 		a.showStats = false
 		tt.SetSize(1000, 800)
 		tt.Frame()
+		tt.Advance(time.Second)
 
 		// A couple of letters in, one right and one wrong.
 		word := a.game.Word()
@@ -72,11 +74,25 @@ func TestShots(t *testing.T) {
 		a.showClue()
 		a.showStats = true
 		tt.Frame()
+		tt.Advance(time.Second)
 		shot(tt, "playing"+suffix)
 
+		a.showStats = false
 		a.giveUp()
 		tt.Frame()
+		tt.Advance(90 * time.Millisecond)
+		shot(tt, "mid-fold"+suffix)
+		tt.Advance(time.Second)
 		shot(tt, "lost"+suffix)
+
+		// Part way through the drawer opening, the keys shrinking with it.
+		a.showStats = true
+		tt.Frame()
+		tt.Advance(120 * time.Millisecond)
+		shot(tt, "mid-drawer"+suffix)
+		a.showStats = false
+		tt.Frame()
+		tt.Advance(time.Second)
 
 		// Part way through a wrong guess: the shake, the pip's halo, the
 		// key settling and the newest body part drawing on.
