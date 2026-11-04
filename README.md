@@ -56,11 +56,14 @@ Every cue is synthesized by the game itself, in
 [`internal/sounds`](internal/sounds), so there are no sound files. The palette
 is a soft wooden pluck, like a marimba, on a pentatonic scale:
 
-- A right letter plucks one step higher than the last, so a word being solved
-  is heard climbing. A letter in several cells plucks once for each, a beat
-  apart, as its letters fly in.
-- A wrong letter is a muted knock with the scratch of the pen over it.
-- A hint is the pluck with a shimmer above it.
+- A right letter plucks one note higher than the last, so a word being solved
+  is heard climbing. The climb starts lower for longer words, so a word's last
+  letter always lands on the same note, the one the win resolves to. A guess
+  is one note, however many cells it fills.
+- A wrong letter is the same wooden bar struck low and damped. Each one falls
+  a semitone, and the last guess you can afford lands on the root of the word
+  lost phrase, so losing a word ends a fall you have been hearing.
+- A hint is the right-letter pluck with a shimmer above it.
 - A word solved ends on a short rising arpeggio, and a word lost on three soft
   notes stepping down.
 - The match's summary opens on a longer phrase if you won it, and a gentle
