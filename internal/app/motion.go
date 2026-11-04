@@ -77,6 +77,18 @@ func once(e ui.Element, key string, run int, d time.Duration, ease ui.Easing) fl
 		ui.KeyframeOptions{Run: uint64(run)})
 }
 
+// glideOn gives e the stage's glide, except while the stats drawer moves.
+// Then the layout changes under the stage every frame, and every row chasing
+// its own spring stuttered and let the keys drift apart, so the stage follows
+// the drawer exactly instead. (c.DisableAnimations would do that too, but it
+// also stops the drawer's own spring.)
+func (a *App) glideOn(e ui.Element) ui.Element {
+	if !a.drawerMoving {
+		e.Transition(glide)
+	}
+	return e
+}
+
 // The layout transitions. Each element of the stage glides to where the
 // layout puts it, at its size, so a row that changes height carries the
 // rest of the stage with it smoothly. A spring rather than a curve, so a

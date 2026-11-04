@@ -35,7 +35,8 @@ const (
 // Two things move. The newest part draws itself on behind a pen tip, and the
 // rope and the figure swing from the beam as the part lands, harder on the
 // guess that loses the word, settling as a pendulum does.
-func drawGallows(c *ui.Context, p palette, wrong, budget int) {
+func (a *App) drawGallows(c *ui.Context, p palette) {
+	wrong, budget := a.game.WrongGuesses(), a.game.GuessBudget()
 	lost := budget > 0 && wrong >= budget
 	figure := p.Text
 	if lost {
@@ -48,7 +49,7 @@ func drawGallows(c *ui.Context, p palette, wrong, budget int) {
 		gallows.Face:   figure,
 	}
 
-	box := ui.Box(c.Key("gallows")).FillWidth().Grow(1).MinHeight(160).Transition(glide)
+	box := a.glideOn(ui.Box(c.Key("gallows")).FillWidth().Grow(1).MinHeight(160))
 	progress, swing := float32(1), float32(0)
 	if wrong > 0 {
 		progress = once(box, "draw", wrong, drawOn, ui.EaseOut)

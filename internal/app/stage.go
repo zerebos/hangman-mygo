@@ -27,7 +27,7 @@ func (a *App) stage(c *ui.Context, p palette) {
 func (a *App) board(c *ui.Context, p palette) {
 	ui.Column(c).Fill().AlignItems(ui.Center).Padding(4, stagePad, 12).Children(func() {
 		ui.Column(c).FillHeight().FillWidth().MaxWidth(stageW).AlignItems(ui.Center).Gap(10).Children(func() {
-			drawGallows(c, p, a.game.WrongGuesses(), a.game.GuessBudget())
+			a.drawGallows(c, p)
 			a.pips(c, p)
 			a.missed(c, p)
 			a.word(c, p)
@@ -35,7 +35,7 @@ func (a *App) board(c *ui.Context, p palette) {
 			// The keyboard and the result card take turns in one slot. The
 			// one going folds away under the one coming, and the slot springs
 			// to the new one's height, which carries the rows above with it.
-			ui.Column(c.Key("bottom")).AlignItems(ui.Center).Transition(glide).Children(func() {
+			a.glideOn(ui.Column(c.Key("bottom")).AlignItems(ui.Center)).Children(func() {
 				if a.game.IsWordOver() {
 					ui.Column(c.Key("result")).Transition(cardSwap).Children(func() { a.result(c, p) })
 				} else {
@@ -53,7 +53,7 @@ func (a *App) board(c *ui.Context, p palette) {
 // with the count of guesses left beside them.
 func (a *App) pips(c *ui.Context, p palette) {
 	wrong, budget := a.game.WrongGuesses(), a.game.GuessBudget()
-	ui.Row(c.Key("pips")).AlignItems(ui.Center).Gap(14).Transition(glide).Children(func() {
+	a.glideOn(ui.Row(c.Key("pips")).AlignItems(ui.Center).Gap(14)).Children(func() {
 		ui.Row(c).Gap(6).Children(func() {
 			for step := range budget {
 				fill := p.TextMuted.Alpha(0.25)
@@ -101,7 +101,7 @@ func (a *App) pips(c *ui.Context, p palette) {
 // wrong guess flies here from its key, and the tiles already here make room.
 // The row keeps its height while empty, so the first miss moves nothing.
 func (a *App) missed(c *ui.Context, p palette) {
-	ui.Row(c.Key("missed")).Height(26).Gap(6).AlignItems(ui.Center).Transition(glide).Children(func() {
+	a.glideOn(ui.Row(c.Key("missed")).Height(26).Gap(6).AlignItems(ui.Center)).Children(func() {
 		for r := 'A'; r <= 'Z'; r++ {
 			if keyStateOf(a.game, r) != keyWrong {
 				continue
@@ -111,7 +111,7 @@ func (a *App) missed(c *ui.Context, p palette) {
 			if r == a.lastGuess {
 				tile.Transition(flight(a.deal, r, 0))
 			} else {
-				tile.Transition(glide)
+				a.glideOn(tile)
 			}
 			tile.Children(func() {
 				ui.Text(c, string(r)).FontSize(13).Bold().TextColor(p.Danger)
@@ -125,7 +125,7 @@ func (a *App) missed(c *ui.Context, p palette) {
 func (a *App) word(c *ui.Context, p palette) {
 	// The word has a fresh identity for every word dealt, so a new word
 	// slides in as the old one slides out rather than swapping on the spot.
-	ui.Box(c.Key("word-slot")).Transition(glide).Children(func() {
+	a.glideOn(ui.Box(c.Key("word-slot"))).Children(func() {
 		ui.Column(c.Key(a.deal)).AlignItems(ui.Center).Gap(8).Padding(6, 0).Transition(wordSwap).Children(func() {
 			a.wordBody(c, p)
 		})
@@ -221,7 +221,7 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 func (a *App) feedback(c *ui.Context, p palette) {
 	// Full width whatever it says, so its spring never squeezes the text
 	// while the line is empty during a result.
-	ui.Row(c.Key("feedback")).FillWidth().Height(24).Justify(ui.Center).AlignItems(ui.Center).Transition(glide).Children(func() {
+	a.glideOn(ui.Row(c.Key("feedback")).FillWidth().Height(24).Justify(ui.Center).AlignItems(ui.Center)).Children(func() {
 		text, color, italic := idleHint, p.TextMuted, false
 		switch n := a.notice; {
 		case a.game.IsWordOver():

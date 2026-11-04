@@ -72,3 +72,36 @@ func TestOncePlaysAgainFromTheStartEveryRun(t *testing.T) {
 		t.Errorf("half way through the second run the value is %v", value)
 	}
 }
+
+// The drawer springs open and shut rather than jumping. Checked part way,
+// because a drawer that jumped looks the same at rest, which is how a guard
+// that stopped its spring got past every other test.
+func TestTheDrawerSpringsOpenAndShut(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	for _, open := range []bool{true, false} {
+		// By clicking, as a player does: a click can build the view twice in
+		// one frame, which is where the broken guard bit. Open from the menu,
+		// shut with the drawer's own close button.
+		if open {
+			if err := tt.Click("More"); err != nil {
+				t.Fatal(err)
+			}
+			if err := tt.Click("Lifetime stats"); err != nil {
+				t.Fatal(err)
+			}
+		} else if err := tt.Click("Close"); err != nil {
+			t.Fatal(err)
+		}
+		if a.showStats != open {
+			t.Fatalf("the menu left the stats at %v", a.showStats)
+		}
+		tt.Advance(100 * time.Millisecond)
+		if a.drawerShown <= 0.05 || a.drawerShown >= 0.95 {
+			t.Errorf("open %v: drawer at %v part way", open, a.drawerShown)
+		}
+		tt.Advance(2 * time.Second)
+		if a.drawerMoving {
+			t.Errorf("open %v: drawer still moving at rest", open)
+		}
+	}
+}

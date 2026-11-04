@@ -63,6 +63,9 @@ type App struct {
 	// from 0 to 1. View sets it from a spring before building the stage,
 	// which sizes its keys from it.
 	drawerShown float32
+	// drawerMoving is whether the drawer is on its way open or shut in this
+	// frame, while the stage follows it (see glideOn).
+	drawerMoving bool
 	// deal counts the words dealt, so the word on the board has a fresh
 	// identity each time and the old one slides away as the new one comes.
 	deal int
