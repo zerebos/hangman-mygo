@@ -233,3 +233,38 @@ func TestAWinningLetterInSeveralCellsLandsWithTheWord(t *testing.T) {
 		t.Errorf("the word was still filling in 700 ms after the winning guess (differs by %.1f)", d)
 	}
 }
+
+// A letter in several cells, typed while the keyboard is still rising back
+// for a new word, lands with the word too: the keyboard is moving then as
+// well, and a delayed flight rode along with it.
+func TestALetterTypedAsTheKeyboardReturnsLandsWithTheWord(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	g, err := game.FromWordsWithSeed(1, "ZZZ", "BANANA")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.game = g
+	a.freshWord(nil)
+	tt.Frame()
+	for a.game.Word() != "BANANA" {
+		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Advance(time.Second)
+		tt.Key(0, ui.KeyEnter)
+	}
+	// At once, while the keyboard is on its way back.
+	tt.Advance(30 * time.Millisecond)
+	tt.Key(0, ui.KeyA)
+	row := func() *image.RGBA {
+		box, ok := tt.Find(wordLabel("BANANA"))
+		if !ok {
+			t.Fatal("no word on screen")
+		}
+		return crop(tt.Image(), box)
+	}
+	tt.Advance(700 * time.Millisecond)
+	early := row()
+	tt.Advance(3 * time.Second)
+	if d := difference(early, row()); d > 2 {
+		t.Errorf("the word was still filling in 700 ms after the guess (differs by %.1f)", d)
+	}
+}

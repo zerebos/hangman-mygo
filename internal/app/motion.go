@@ -167,23 +167,23 @@ type letterMatch struct {
 
 // flight is the transition of either end of a letter's n-th flight.
 //
-// Mid-word, later flights leave a beat after earlier ones, so a letter that
-// fills several cells reads as a little stream rather than a burst. On the
-// guess that ends the word they all leave at once: a flight waiting to leave
-// is held at its start, and its start is in the keyboard, which is folding
-// away under the result card, so a waiting letter rode down with it and only
-// then turned for the word.
+// The flights of a letter in several cells all leave at once, and the later
+// ones take a little longer to arrive, so they still read as a stream. They
+// are not delayed instead: a flight waiting to leave is held at its start,
+// and its start is in the keyboard, which may be moving (folding away under
+// the result card, or rising back for the next word), so a waiting letter
+// rode along with it and only then turned for the word.
 func (a *App) flight(letter rune, n int) ui.ElementTransition {
-	anim := ui.Snappy
-	if !a.game.IsWordOver() {
-		anim.Delay = time.Duration(n) * flightStagger
-	}
+	anim := ui.Animation{Spring: ui.SpringOptions{Duration: flightTime + time.Duration(n)*flightStagger, Bounce: 0.15}}
 	return ui.ElementTransition{Animation: &anim, Match: letterMatch{a.deal, letter, n}, Fly: true}
 }
 
-// flightStagger is how far apart the flights of one letter leave mid-word,
-// and how far apart its notes sound.
-const flightStagger = 45 * time.Millisecond
+// flightTime is how long a letter's first flight takes, and flightStagger
+// how much longer each later one of the same letter takes.
+const (
+	flightTime    = 420 * time.Millisecond
+	flightStagger = 70 * time.Millisecond
+)
 
 // occurrences is how many times letter is in word.
 func occurrences(word string, letter rune) int {
