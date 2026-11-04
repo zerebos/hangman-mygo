@@ -12,7 +12,7 @@ import (
 func (a *App) stage(c *ui.Context, p palette) {
 	// The stage and the match's summary take turns filling the scene: the
 	// one going shrinks back and fades as the other comes forward.
-	ui.Box(c.Key("scene")).Grow(1).Children(func() {
+	ui.Box(c.Key("scene")).Grow(1).Clip().Children(func() {
 		if a.summaryShown {
 			ui.Column(c.Key("summary")).Absolute().Top(0).Left(0).Right(0).Bottom(0).Transition(sceneSwap).
 				Children(func() { a.summary(c, p) })
@@ -72,7 +72,13 @@ func (a *App) pips(c *ui.Context, p palette) {
 						halo.Scale(grow, grow)
 						halo.Opacity(pipHaloFade * (1 - t))
 					}
-					ui.Box(c).Fill().Radius(pipSize / 2).Background(fill)
+					dot := ui.Box(c.Key("dot")).Fill().Radius(pipSize / 2).Background(fill)
+					// The pip pops as it turns red, so the eye catches which
+					// one it was.
+					if step+1 == wrong {
+						pop := dot.Keyframes("pop", pipPop, ui.KeyframeOptions{Run: uint64(wrong)})
+						dot.Scale(pop, pop)
+					}
 				})
 			}
 		})
@@ -85,7 +91,9 @@ func (a *App) pips(c *ui.Context, p palette) {
 		if left <= 2 && !a.game.IsWordOver() {
 			color = p.Danger
 		}
-		ui.Textf(c, "%d guess%s left", left, s).FontSize(12).TextColor(color)
+		// One line, and wide enough for "10 guesses left", so the row's spring
+		// never wraps it as the count loses a digit.
+		ui.Textf(c, "%d guess%s left", left, s).FontSize(12).TextColor(color).SingleLine().MinWidth(96)
 	})
 }
 

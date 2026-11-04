@@ -22,7 +22,7 @@ func (a *App) drawer(c *ui.Context, p palette) {
 func (a *App) drawerPanel(c *ui.Context, p palette) {
 	s := a.session.Stats()
 	ui.Column(c).Width(drawerW).FillHeight().Gap(16).Padding(18, 20).
-		Background(p.Surface.Alpha(0.5)).BorderWidth(0, 0, 0, 1).BorderColor(p.Border).Children(func() {
+		Background(p.Background.Mix(p.Surface, 0.5)).BorderWidth(0, 0, 0, 1).BorderColor(p.Border).Children(func() {
 		ui.Row(c).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "Lifetime stats").FontSize(16).Bold()
 			ui.Spacer(c)

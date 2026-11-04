@@ -75,6 +75,12 @@ func (a *App) View(c *ui.Context) {
 			target = 1
 		}
 		a.drawerShown = body.AnimateTo("drawer", target, ui.Smooth)
+		// While the drawer moves, the stage follows it exactly instead of
+		// every row chasing its own spring, which stuttered and let the keys
+		// drift apart from one another. A guess's own Keyframes still play.
+		if !body.Settled("drawer") {
+			c.DisableAnimations()
+		}
 		body.Children(func() {
 			a.stage(c, p)
 			if a.drawerShown > 0.001 {

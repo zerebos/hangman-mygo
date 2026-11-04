@@ -18,12 +18,17 @@ func (a *App) header(c *ui.Context, p palette) {
 		AlignItems(ui.Center).DragWindow().Children(func() {
 		ui.Text(c, "Hangman!").FontSize(16).Bold()
 		a.difficultyMenu(c)
+		// The score sits in the middle of the bar, between who you are and
+		// what you can do.
 		ui.Spacer(c)
-		s := a.session.Stats()
-		chip(c, p, "Score", fmt.Sprint(a.session.MatchPoints()), p.Text)
-		chip(c, p, "Streak", fmt.Sprint(s.Streak), p.Success)
-		chip(c, p, "Best", fmt.Sprint(s.BestStreak), p.blue)
-		chip(c, p, "Word", fmt.Sprintf("%d/%d", a.game.WordNumber(), a.game.TotalWords()), p.TextMuted)
+		ui.Row(c).Gap(8).Children(func() {
+			s := a.session.Stats()
+			chip(c, p, "Score", fmt.Sprint(a.session.MatchPoints()), p.Text)
+			chip(c, p, "Streak", fmt.Sprint(s.Streak), p.Success)
+			chip(c, p, "Best", fmt.Sprint(s.BestStreak), p.blue)
+			chip(c, p, "Word", fmt.Sprintf("%d/%d", a.game.WordNumber(), a.game.TotalWords()), p.TextMuted)
+		})
+		ui.Spacer(c)
 		a.menu(c)
 	})
 }

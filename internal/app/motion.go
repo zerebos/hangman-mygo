@@ -21,9 +21,9 @@ const (
 	shakeCycles  = 2.5
 	shakeSamples = 24
 
-	pipPulse    = 420 * time.Millisecond
-	pipHalo     = 7
-	pipHaloFade = 0.45
+	pipPulse    = 600 * time.Millisecond
+	pipHalo     = 12
+	pipHaloFade = 0.6
 
 	keySettle = 240 * time.Millisecond
 	drawOn    = 300 * time.Millisecond
@@ -135,4 +135,13 @@ type letterMatch struct {
 // flight is the transition of either end of a letter's flight.
 func flight(deal int, letter rune) ui.ElementTransition {
 	return ui.ElementTransition{Animation: &ui.Snappy, Match: letterMatch{deal, letter}, Fly: true}
+}
+
+// pipPop swells a pip to nearly twice its size and settles it back with a
+// little overshoot.
+var pipPop = []ui.Keyframe{
+	{Value: 1},
+	{At: 110 * time.Millisecond, Value: 1.9, Ease: ui.EaseOut},
+	{At: 300 * time.Millisecond, Value: 0.85, Ease: ui.EaseInOut},
+	{At: 450 * time.Millisecond, Value: 1, Ease: ui.EaseInOut},
 }
