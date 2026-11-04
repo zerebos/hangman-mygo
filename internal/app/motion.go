@@ -114,20 +114,23 @@ var (
 	glide = ui.ElementTransition{Animation: &ui.Snappy}
 
 	// keysSwap folds the keyboard down and away as the result card takes
-	// its place, and brings it back up for the next word. It is quick, so
-	// the card after it is not kept waiting.
+	// its place, quickly, so the card after it is not kept waiting. For the
+	// next word it comes back at once rather than waiting for the card to
+	// go: the keys are where a guess flies from, and a player typing the
+	// moment the word is dealt would otherwise see letters fly out of a
+	// keyboard that is not there yet.
 	keysSwap = ui.ElementTransition{
-		Animation:  &ui.Animation{Duration: 180 * time.Millisecond, Ease: ui.EaseOut},
-		Enter:      &ui.Motion{Y: 16, Scale: 0.97},
-		Exit:       &ui.Motion{Y: 10, Scale: 0.94},
-		AfterExits: true,
+		Animation: &ui.Animation{Duration: 180 * time.Millisecond, Ease: ui.EaseOut},
+		Enter:     &ui.Motion{Y: 16, Scale: 0.97},
+		Exit:      &ui.Motion{Y: 10, Scale: 0.94},
 	}
 	// cardSwap rises the result card into the keyboard's place once the
-	// keyboard has gone, so the two never lie across each other.
+	// keyboard has gone, so the two never lie across each other. It leaves
+	// fast, fading under the keyboard coming back.
 	cardSwap = ui.ElementTransition{
-		Animation:  &ui.Snappy,
+		Animation:  &ui.Animation{Duration: 240 * time.Millisecond, Ease: ui.EaseOut},
 		Enter:      &ui.Motion{Y: 24, Scale: 0.94},
-		Exit:       &ui.Motion{Y: 10, Scale: 0.96},
+		Exit:       &ui.Motion{Y: 6, Scale: 0.98},
 		AfterExits: true,
 	}
 	// wordSwap slides the old word up and out as the next comes up from
@@ -162,14 +165,25 @@ type letterMatch struct {
 	n      int
 }
 
-// flight is the transition of either end of a letter's n-th flight. Later
-// flights leave a beat after earlier ones, so a letter that fills several
-// cells reads as a little stream rather than a burst.
-func flight(deal int, letter rune, n int) ui.ElementTransition {
-	a := ui.Snappy
-	a.Delay = time.Duration(n) * 45 * time.Millisecond
-	return ui.ElementTransition{Animation: &a, Match: letterMatch{deal, letter, n}, Fly: true}
+// flight is the transition of either end of a letter's n-th flight.
+//
+// Mid-word, later flights leave a beat after earlier ones, so a letter that
+// fills several cells reads as a little stream rather than a burst. On the
+// guess that ends the word they all leave at once: a flight waiting to leave
+// is held at its start, and its start is in the keyboard, which is folding
+// away under the result card, so a waiting letter rode down with it and only
+// then turned for the word.
+func (a *App) flight(letter rune, n int) ui.ElementTransition {
+	anim := ui.Snappy
+	if !a.game.IsWordOver() {
+		anim.Delay = time.Duration(n) * flightStagger
+	}
+	return ui.ElementTransition{Animation: &anim, Match: letterMatch{a.deal, letter, n}, Fly: true}
 }
+
+// flightStagger is how far apart the flights of one letter leave mid-word,
+// and how far apart its notes sound.
+const flightStagger = 45 * time.Millisecond
 
 // occurrences is how many times letter is in word.
 func occurrences(word string, letter rune) int {

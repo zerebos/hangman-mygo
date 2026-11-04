@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/egoist/mygo/ui"
 
 	"github.com/zerebos/hangman-mygo/internal/game"
@@ -109,7 +111,7 @@ func (a *App) missed(c *ui.Context, p palette) {
 			tile := ui.Box(c.Key(r)).Size(26, 26).Center().Radius(6).Background(p.Danger.Alpha(0.15)).
 				Border(1, p.Danger.Alpha(0.5))
 			if r == a.lastGuess {
-				tile.Transition(flight(a.deal, r, 0))
+				tile.Transition(a.flight(r, 0))
 			} else {
 				a.glideOn(tile)
 			}
@@ -138,7 +140,7 @@ func (a *App) wordBody(c *ui.Context, p palette) {
 			ui.Text(c, category).FontSize(11).Bold().TextColor(p.TextMuted).Padding(2, 10).
 				Radius(999).Border(1, p.Border)
 		}
-		row := ui.Row(c.Key("word")).Wrap().Justify(ui.Center).Gap(wordGap)
+		row := ui.Row(c.Key("word")).Wrap().Justify(ui.Center).Gap(wordGap).Label(wordLabel(a.game.Word()))
 		// A wrong guess shakes the word. Below one wrong guess there is no
 		// shake at all, so the row does not twitch as a word is dealt.
 		if wrong := a.game.WrongGuesses(); wrong > 0 {
@@ -205,7 +207,7 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 		// resolves left to right as the flourish for finishing it.
 		switch {
 		case fresh >= 0:
-			g.Transition(flight(a.deal, cell.Value, fresh))
+			g.Transition(a.flight(cell.Value, fresh))
 		case a.game.IsWon():
 			winReveal.play(g, "win", uint64(a.game.WordNumber()), index)
 		}
@@ -274,11 +276,11 @@ func (a *App) key(c *ui.Context, p palette, letter rune) {
 			for n := 1; n < occurrences(a.game.Word(), letter); n++ {
 				ui.Box(c.Key(n)).Absolute().Top(0).Left(0).Size(keySize, keySize).Center().
 					Radius(p.Radius).Background(p.Surface).Border(1, p.Border).
-					IgnoreInput(true).AccessHidden(true).Transition(flight(a.deal, letter, n)).
+					IgnoreInput(true).AccessHidden(true).Transition(a.flight(letter, n)).
 					Children(func() { ui.Text(c, label).Bold().FontSize(16) })
 			}
 			if ui.Button(c.Key("key"), label).Size(keySize, keySize).Padding(0).Bold().FontSize(16).
-				Transition(flight(a.deal, letter, 0)).
+				Transition(a.flight(letter, 0)).
 				Tooltip("Guess " + label).Clicked() {
 				a.guess(letter)
 			}
@@ -371,4 +373,10 @@ func (a *App) result(c *ui.Context, p palette) {
 			}
 		})
 	})
+}
+
+// wordLabel names the word's row for screen readers by its length alone,
+// which tells them no more than the blanks on screen do.
+func wordLabel(word string) string {
+	return fmt.Sprintf("The word, %d letters", len([]rune(word)))
 }

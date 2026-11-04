@@ -8,6 +8,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"github.com/zerebos/hangman-mygo/internal/game"
 	"github.com/zerebos/hangman-mygo/internal/settings"
 )
 
@@ -169,6 +170,20 @@ func sameImage(a, b *image.RGBA) bool {
 	return a.Rect == b.Rect && bytes.Equal(a.Pix, b.Pix)
 }
 
+// difference is the mean difference of two images, per channel, from 0 to
+// 255.
+func difference(a, b *image.RGBA) float64 {
+	if a.Rect != b.Rect {
+		return 255
+	}
+	total := 0
+	for i := range a.Pix {
+		d := int(a.Pix[i]) - int(b.Pix[i])
+		total += max(d, -d)
+	}
+	return float64(total) / float64(len(a.Pix))
+}
+
 // crop copies the part of img under r, a box in DIPs at the tester's scale
 // of 1.
 func crop(img *image.RGBA, r ui.Rect) *image.RGBA {
@@ -180,4 +195,41 @@ func crop(img *image.RGBA, r ui.Rect) *image.RGBA {
 		}
 	}
 	return out
+}
+
+// When the winning letter is in several cells, all of its flights land with
+// the word rather than late. A flight waiting to leave is held at its start,
+// in the keyboard folding away, so staggered flights rode down toward the
+// result card first and reached the word only after the win reveal was over.
+func TestAWinningLetterInSeveralCellsLandsWithTheWord(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	g, err := game.FromWordsWithSeed(1, "BANANA")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.game = g
+	a.freshWord(nil)
+	tt.Frame()
+	tt.Key(0, ui.KeyB)
+	tt.Key(0, ui.KeyN)
+	tt.Advance(2 * time.Second)
+	tt.Key(0, ui.KeyA)
+	// The row itself glides as the result card replaces the keyboard, so it
+	// is found again at each moment and only what is inside it compared.
+	row := func() *image.RGBA {
+		box, ok := tt.Find(wordLabel("BANANA"))
+		if !ok {
+			t.Fatal("no word on screen")
+		}
+		return crop(tt.Image(), box)
+	}
+	tt.Advance(700 * time.Millisecond)
+	early := row()
+	tt.Advance(3 * time.Second)
+	// Close rather than equal: the flown letters are still settling their
+	// last fraction of a pixel. A letter missing from the row differs by far
+	// more.
+	if d := difference(early, row()); d > 2 {
+		t.Errorf("the word was still filling in 700 ms after the winning guess (differs by %.1f)", d)
+	}
 }
