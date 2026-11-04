@@ -57,6 +57,8 @@ type App struct {
 	clueShown bool
 	// showStats is whether the lifetime stats fold out under the board.
 	showStats bool
+	// window is the window the header draws its controls for, or nil.
+	window Window
 	// drawerShown is how far open the stats drawer is drawn in this frame,
 	// from 0 to 1. View sets it from a spring before building the stage,
 	// which sizes its keys from it.

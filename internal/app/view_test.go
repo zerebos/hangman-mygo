@@ -301,3 +301,33 @@ func TestAWordListOfYourOwnCanBePlayedAgain(t *testing.T) {
 		t.Errorf("after Play again: over %v, pack %q, word %d", a.game.IsMatchOver(), a.game.PackName(), a.game.WordNumber())
 	}
 }
+
+// fakeWindow records what the header's window controls asked of it.
+type fakeWindow struct {
+	maximized         bool
+	minimized, closed int
+}
+
+func (w *fakeWindow) Minimize()         { w.minimized++ }
+func (w *fakeWindow) Maximize()         { w.maximized = true }
+func (w *fakeWindow) Unmaximize()       { w.maximized = false }
+func (w *fakeWindow) IsMaximized() bool { return w.maximized }
+func (w *fakeWindow) Close()            { w.closed++ }
+
+func TestTheHeadersWindowControlsWorkTheWindow(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	if tt.HasText("Minimize") {
+		t.Fatal("controls drawn with no window to control")
+	}
+	w := &fakeWindow{}
+	a.SetWindow(w)
+	tt.Frame()
+	for _, label := range []string{"Minimize", "Maximize", "Restore", "Close"} {
+		if err := tt.Click(label); err != nil {
+			t.Fatalf("%s: %v", label, err)
+		}
+	}
+	if w.minimized != 1 || w.maximized || w.closed != 1 {
+		t.Errorf("window %+v", *w)
+	}
+}

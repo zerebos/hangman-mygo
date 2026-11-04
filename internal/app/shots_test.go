@@ -45,6 +45,7 @@ func TestShots(t *testing.T) {
 		}
 		a := New(settings.Settings{Theme: theme}, Options{})
 		a.game = game.WithSeed(game.Easy, 7)
+		a.SetWindow(&fakeWindow{})
 		tt := ui.NewTester(a.View, 1000, 800)
 		shot(tt, "start"+suffix)
 

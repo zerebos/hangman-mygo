@@ -14,7 +14,13 @@ import (
 // menu for everything else.
 func (a *App) header(c *ui.Context, p palette) {
 	bar := c.TitleBar()
-	ui.Row(c).Height(max(bar.Height, 52)).Padding(0, bar.Right+12, 0, bar.Left+20).Gap(16).
+	height := max(bar.Height, 52)
+	right := bar.Right + 12
+	if a.window != nil {
+		// Our own controls end the bar, flush with the window's corner.
+		right = 0
+	}
+	ui.Row(c).Height(height).Padding(0, right, 0, bar.Left+20).Gap(16).
 		AlignItems(ui.Center).DragWindow().Children(func() {
 		ui.Text(c, "Hangman!").FontSize(16).Bold()
 		a.difficultyMenu(c)
@@ -30,6 +36,7 @@ func (a *App) header(c *ui.Context, p palette) {
 		})
 		ui.Spacer(c)
 		a.menu(c)
+		a.windowControls(c, p, height)
 	})
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/audio"
@@ -71,17 +72,25 @@ func main() {
 		PickFile:     pickFile,
 	})
 
+	// The header draws its own window controls at its full height, except
+	// on macOS, whose traffic lights stay as the system draws them.
+	ownControls := runtime.GOOS != "darwin"
+
 	mygo.App.WhenReady(func() {
 		win = mygo.NewWindow(mygo.WindowOptions{
-			Title:         "Hangman!",
-			Width:         1000,
-			Height:        800,
-			MinWidth:      880,
-			MinHeight:     660,
-			StateKey:      "main",
-			TitleBarStyle: mygo.TitleBarHidden,
-			Content:       ui.View(game.View),
+			Title:             "Hangman!",
+			Width:             1000,
+			Height:            800,
+			MinWidth:          880,
+			MinHeight:         660,
+			StateKey:          "main",
+			TitleBarStyle:     mygo.TitleBarHidden,
+			HideWindowButtons: ownControls,
+			Content:           ui.View(game.View),
 		})
+		if ownControls {
+			game.SetWindow(win)
+		}
 	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
