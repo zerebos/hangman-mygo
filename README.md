@@ -34,7 +34,8 @@ Almost everything moves:
 - A guessed letter flies from its key into every cell it fills, or onto the
   row of missed letters under the gallows.
 - The newest body part draws itself on behind a pen tip, and the figure swings
-  from the beam as it lands, harder on the guess that loses the word.
+  from the beam as it lands, harder on the guess that loses the word. Giving
+  up is a loss like any other: the parts it costs draw on one after another.
 - The word shakes on a wrong guess, the newest pip pops, and a played key
   fades into the color its guess earned.
 - When a word ends, the keyboard folds away and the result card rises into its
