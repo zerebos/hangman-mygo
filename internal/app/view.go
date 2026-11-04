@@ -253,10 +253,24 @@ func (a *App) wordPanel(c *ui.Context, p palette) {
 				ui.Text(c, category).FontSize(11).TextColor(p.TextMuted).TextAlign(ui.End).Shrink(1)
 			}
 		})
-		ui.Row(c).Wrap().Justify(ui.Center).Gap(wordGap).Children(func() {
+		row := ui.Row(c.Key("word")).Wrap().Justify(ui.Center).Gap(wordGap)
+		// A wrong guess shakes the word. Below one wrong guess there is no
+		// shake at all, so the row does not twitch as a word is dealt.
+		if wrong := a.game.WrongGuesses(); wrong > 0 {
+			row.Translate(row.Keyframes("shake", shakeFrames, ui.KeyframeOptions{Run: uint64(wrong)}), 0)
+		}
+		row.Children(func() {
 			lost := a.game.Result() == game.Lost
+			// A letter's occurrences stagger against each other rather than
+			// against the word, so guessing the only E of a long word does
+			// not wait out the cells in front of it.
+			occurrence := 0
 			for i, cell := range a.game.Cells() {
-				a.wordCell(c.Key(i), p, cell, lost)
+				fresh := -1
+				if a.lastGuess != 0 && cell.Value == a.lastGuess && cell.Revealed {
+					fresh, occurrence = occurrence, occurrence+1
+				}
+				a.wordCell(c.Key(i), p, i, cell, fresh, lost)
 			}
 		})
 		if clue := a.game.Clue(); a.clueShown && clue != "" {
@@ -269,7 +283,11 @@ func (a *App) wordPanel(c *ui.Context, p palette) {
 // wordCell is one character of the word: the glyph, and the rule it sits on.
 // On a loss the letters the player never guessed are marked, because they
 // are the answer rather than their work.
-func (a *App) wordCell(c *ui.Context, p palette, cell game.Cell, lost bool) {
+//
+// index is the cell's place in the word, which is its place in the win
+// reveal. fresh is its place among the cells the last guess turned over, or
+// -1 when the last guess did not touch it.
+func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fresh int, lost bool) {
 	missed := lost && cell.Guessable && !a.game.Guessed().Has(cell.Value)
 	glyph, rule := p.Text, p.TextMuted.Alpha(0.4)
 	switch {
@@ -288,7 +306,15 @@ func (a *App) wordCell(c *ui.Context, p palette, cell game.Cell, lost bool) {
 		if cell.Revealed {
 			text = string(cell.Value)
 		}
-		ui.Text(c, text).Height(cellH).FontSize(30).Bold().Font("monospace").TextColor(glyph)
+		g := ui.Text(c.Key("glyph"), text).Height(cellH).FontSize(30).Bold().Font("monospace").TextColor(glyph)
+		// The win comes first: the guess that wins also reveals letters, and
+		// taking the win means the row plays one flourish, not two at once.
+		switch {
+		case a.game.IsWon():
+			winReveal.play(g, "win", uint64(a.game.WordNumber()), index)
+		case fresh >= 0:
+			guessReveal.play(g, "guess", uint64(guessCount(a.game)), fresh)
+		}
 		if cell.Guessable {
 			ui.Box(c).FillWidth().Height(ruleH).Radius(2).Background(rule)
 		}
@@ -343,9 +369,16 @@ func (a *App) key(c *ui.Context, p palette, letter rune) {
 		if keyStateOf(a.game, letter) == keyWrong {
 			fill = p.Danger
 		}
-		ui.Box(c.Key(letter)).Size(keySize, keySize).Center().Radius(p.Radius).
-			Background(fill.Alpha(0.85)).Border(1, fill).Children(func() {
-			ui.Text(c, label).Bold().TextColor(ui.Hex("#ffffff"))
+		bg, border, text := fill.Alpha(0.85), fill, ui.Hex("#ffffff")
+		tile := ui.Box(c.Key(letter)).Size(keySize, keySize).Center().Radius(p.Radius)
+		// The key the last guess played fades from an unplayed key's colors
+		// into the ones its guess earned, rather than snapping to them.
+		if letter == a.lastGuess {
+			t := once(tile, "settle", guessCount(a.game), keySettle, ui.EaseInOut)
+			bg, border, text = p.Surface.MixOklab(bg, t), p.Border.MixOklab(border, t), p.Text.MixOklab(text, t)
+		}
+		tile.Background(bg).Border(1, border).Children(func() {
+			ui.Text(c, label).Bold().TextColor(text)
 		})
 	}
 }
@@ -495,7 +528,20 @@ func (a *App) stage(c *ui.Context, p palette) {
 				if step < wrong {
 					fill = p.Danger
 				}
-				ui.Box(c).Size(pipSize, pipSize).Radius(pipSize / 2).Background(fill)
+				ui.Box(c.Key(step)).Size(pipSize, pipSize).Children(func() {
+					// The pip the last wrong guess filled pulses: a halo
+					// behind it grows past it and fades out, so it ends
+					// invisible, and being absolute it moves nothing else.
+					if step+1 == wrong {
+						halo := ui.Box(c.Key("halo")).Absolute().Top(0).Left(0).Size(pipSize, pipSize).
+							Radius(pipSize / 2).Background(p.Danger)
+						t := once(halo, "pulse", wrong, pipPulse, ui.EaseOut)
+						grow := 1 + 2*pipHalo/pipSize*t
+						halo.Scale(grow, grow)
+						halo.Opacity(pipHaloFade * (1 - t))
+					}
+					ui.Box(c).Fill().Radius(pipSize / 2).Background(fill)
+				})
 			}
 		})
 	})

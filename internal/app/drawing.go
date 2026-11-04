@@ -27,12 +27,18 @@ func drawGallows(c *ui.Context, p palette, wrong, budget int) {
 		gallows.Face:   figure,
 	}
 
-	ui.Box(c).FillWidth().Grow(1).MinHeight(160).Draw(func(pt *ui.Painter, r ui.Rect) {
+	box := ui.Box(c.Key("gallows")).FillWidth().Grow(1).MinHeight(160)
+	// The newest part draws itself on, replayed on every wrong guess.
+	progress := float32(1)
+	if wrong > 0 {
+		progress = once(box, "draw", wrong, drawOn, ui.EaseInOut)
+	}
+	box.Draw(func(pt *ui.Painter, r ui.Rect) {
 		fit := gallows.Fit(r.W, r.H)
 		if fit.Scale <= 0 {
 			return
 		}
-		strokes := append(gallows.FrameStrokes(), gallows.FigureStrokes(budget, wrong, 1)...)
+		strokes := append(gallows.FrameStrokes(), gallows.FigureStrokes(budget, wrong, progress)...)
 		for _, s := range strokes {
 			if len(s.Points) < 2 {
 				continue

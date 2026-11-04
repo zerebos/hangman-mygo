@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -63,6 +64,24 @@ func TestShots(t *testing.T) {
 		a.giveUp()
 		tt.Frame()
 		shot(tt, "lost"+suffix)
+
+		// Part way through a wrong guess: the shake, the pip's halo, the
+		// key settling and the newest body part drawing on.
+		a.nextWord()
+		tt.Frame()
+		tt.Key(0, ui.KeyA+ui.Key(wrongLetter(a.game)-'A'))
+		tt.Advance(120 * time.Millisecond)
+		shot(tt, "mid-wrong"+suffix)
+
+		// Part way through the win reveal.
+		for _, r := range a.game.Word() {
+			if 'A' <= r && r <= 'Z' && !a.game.Guessed().Has(r) {
+				a.guess(r)
+			}
+		}
+		tt.Frame()
+		tt.Advance(150 * time.Millisecond)
+		shot(tt, "mid-win"+suffix)
 	}
 }
 
