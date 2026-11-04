@@ -10,17 +10,14 @@ import (
 )
 
 // header is the one bar above the stage, and it is the window's title bar
-// too: the wordmark and where the words come from, the difficulty, the
-// score as chips, and a menu for everything else.
+// too: the wordmark, where the words come from, the score as chips, and a
+// menu for everything else.
 func (a *App) header(c *ui.Context, p palette) {
 	bar := c.TitleBar()
 	ui.Row(c).Height(max(bar.Height, 52)).Padding(0, bar.Right+12, 0, bar.Left+20).Gap(16).
 		AlignItems(ui.Center).DragWindow().Children(func() {
-		ui.Row(c).AlignItems(ui.Baseline).Gap(8).Children(func() {
-			ui.Text(c, "Hangman!").FontSize(16).Bold()
-			ui.Text(c, subtitle(a.game)).FontSize(12).TextColor(p.TextMuted).SingleLine()
-		})
-		a.difficultyPills(c)
+		ui.Text(c, "Hangman!").FontSize(16).Bold()
+		a.difficultyMenu(c)
 		ui.Spacer(c)
 		s := a.session.Stats()
 		chip(c, p, "Score", fmt.Sprint(a.session.MatchPoints()), p.Text)
@@ -31,25 +28,25 @@ func (a *App) header(c *ui.Context, p palette) {
 	})
 }
 
-// difficultyPills is the four difficulties as joined toggles. A click on
-// the one in play mid-match changes nothing; once the match is over it
+// difficultyMenu is a dropdown showing where the words come from: the
+// difficulty in play, or the name of a list of your own. Choosing the
+// difficulty in play mid-match changes nothing; once the match is over it
 // replays the list.
-func (a *App) difficultyPills(c *ui.Context) {
+func (a *App) difficultyMenu(c *ui.Context) {
 	current := a.game.Difficulty()
 	// The warning says "this word" and never the word, which is the answer.
 	atStake := a.game.HasWordToLose()
-	ui.ToggleGroup(c, func() {
+	ui.PopoverMenuButton(c.Key("difficulty"), subtitle(a.game), func(m *ui.Menu) {
+		if atStake {
+			m.Item("Switching counts this word as a loss").Disabled(true)
+			m.Separator()
+		}
 		for _, d := range game.Difficulties {
-			on := current == d
-			pill := ui.Toggle(c.Key(d), &on, d.Label())
-			if atStake && current != d {
-				pill.Tooltip("Switching now counts this word as a loss")
-			}
-			if pill.Changed() {
+			if m.Item(d.Label()).Radio(current == d).Chosen() {
 				a.setDifficulty(d)
 			}
 		}
-	}).Label("Difficulty")
+	}).Tooltip("Difficulty")
 }
 
 // chip is one number of the scoreboard, small enough to live in the header.

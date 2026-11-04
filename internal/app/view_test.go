@@ -111,9 +111,7 @@ func TestTheResetQuestionKeepsTheBoardOutOfItsWay(t *testing.T) {
 
 func TestPickingADifficultyStartsAMatchOnIt(t *testing.T) {
 	a, tt, path := tester(t, settings.Settings{})
-	if err := tt.Click("Insane"); err != nil {
-		t.Fatal(err)
-	}
+	chooseDifficulty(t, a, tt, "Insane")
 	if a.game.Difficulty() != game.Insane || a.game.GuessBudget() != 6 {
 		t.Fatalf("difficulty %v, budget %d", a.game.Difficulty(), a.game.GuessBudget())
 	}
@@ -124,9 +122,7 @@ func TestPickingADifficultyStartsAMatchOnIt(t *testing.T) {
 	// The pill already selected does nothing mid-match.
 	word := a.game.Word()
 	tt.Key(0, ui.KeyQ)
-	if err := tt.Click("Insane"); err != nil {
-		t.Fatal(err)
-	}
+	chooseDifficulty(t, a, tt, "Insane")
 	if a.game.Word() != word || !a.game.Guessed().Has('Q') {
 		t.Error("re-clicking the difficulty in play threw the word away")
 	}
@@ -136,9 +132,7 @@ func TestSwitchingMidWordChargesTheWordAndSaysSo(t *testing.T) {
 	a, tt, _ := tester(t, settings.Settings{})
 	word := a.game.Word()
 	tt.Key(0, wrongKey(a.game))
-	if err := tt.Click("Hard"); err != nil {
-		t.Fatal(err)
-	}
+	chooseDifficulty(t, a, tt, "Hard")
 	if a.session.Stats().WordsLost != 1 || a.session.Stats().ForDifficulty(game.Easy).WordsLost != 1 {
 		t.Error("the abandoned word was not charged to Easy")
 	}
@@ -196,4 +190,38 @@ func TestTheSettingsFileFollowsEveryGuess(t *testing.T) {
 
 func wrongKey(g *game.Game) ui.Key {
 	return ui.KeyA + ui.Key(wrongLetter(g)-'A')
+}
+
+// chooseDifficulty opens the difficulty dropdown and chooses label from it.
+//
+// The dropdown's own button shows the difficulty in play, so its item cannot
+// be found by its text. The items are rows of one height in menu order, so
+// the target's row is worked out from two items that are not the one in play.
+func chooseDifficulty(t *testing.T, a *App, tt *ui.Tester, label string) {
+	t.Helper()
+	if err := tt.Click(subtitle(a.game)); err != nil {
+		t.Fatal(err)
+	}
+	var rows []int
+	for i, d := range game.Difficulties {
+		if d != a.game.Difficulty() {
+			rows = append(rows, i)
+		}
+	}
+	first, ok1 := tt.Find(game.Difficulties[rows[0]].Label())
+	second, ok2 := tt.Find(game.Difficulties[rows[1]].Label())
+	if !ok1 || !ok2 {
+		t.Fatalf("the menu did not open: %q", tt.Texts())
+	}
+	step := (second.Y - first.Y) / float32(rows[1]-rows[0])
+	target := 0
+	for i, d := range game.Difficulties {
+		if d.Label() == label {
+			target = i
+		}
+	}
+	tt.ClickAt(first.X+first.W/2, first.Y+first.H/2+step*float32(target-rows[0]))
+	if tt.HasText(game.Difficulties[rows[0]].Label()) && game.Difficulties[rows[0]].Label() != subtitle(a.game) {
+		t.Fatalf("the menu is still open after choosing %q", label)
+	}
 }

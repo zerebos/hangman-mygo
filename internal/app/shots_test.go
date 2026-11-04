@@ -47,6 +47,19 @@ func TestShots(t *testing.T) {
 		tt := ui.NewTester(a.View, 1000, 800)
 		shot(tt, "start"+suffix)
 
+		// The smallest window, with the drawer open and the dropdown down.
+		a.showStats = true
+		tt.SetSize(880, 660)
+		tt.Frame()
+		if err := tt.Click(subtitle(a.game)); err != nil {
+			t.Fatal(err)
+		}
+		shot(tt, "min-menu"+suffix)
+		tt.Key(0, ui.KeyEscape)
+		a.showStats = false
+		tt.SetSize(1000, 800)
+		tt.Frame()
+
 		// A couple of letters in, one right and one wrong.
 		word := a.game.Word()
 		a.guess(rune(word[0]))
