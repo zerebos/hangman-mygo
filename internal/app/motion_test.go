@@ -171,17 +171,33 @@ func sameImage(a, b *image.RGBA) bool {
 }
 
 // difference is the mean difference of two images, per channel, from 0 to
-// 255.
+// 255, at the best of their alignments within a pixel either way. A box
+// found part way through a glide sits at a fraction of a pixel, and cropping
+// it rounds to one pixel or the next, which is not what these tests are
+// asking about.
 func difference(a, b *image.RGBA) float64 {
 	if a.Rect != b.Rect {
 		return 255
 	}
-	total := 0
-	for i := range a.Pix {
-		d := int(a.Pix[i]) - int(b.Pix[i])
-		total += max(d, -d)
+	w, h := a.Rect.Dx(), a.Rect.Dy()
+	best := 255.0
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			total, n := 0, 0
+			for y := max(0, -dy); y < min(h, h-dy); y++ {
+				for x := max(0, -dx); x < min(w, w-dx); x++ {
+					i, j := a.PixOffset(x, y), b.PixOffset(x+dx, y+dy)
+					for c := range 4 {
+						d := int(a.Pix[i+c]) - int(b.Pix[j+c])
+						total += max(d, -d)
+					}
+					n += 4
+				}
+			}
+			best = min(best, float64(total)/float64(n))
+		}
 	}
-	return float64(total) / float64(len(a.Pix))
+	return best
 }
 
 // crop copies the part of img under r, a box in DIPs at the tester's scale
