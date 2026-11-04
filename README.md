@@ -17,6 +17,15 @@ go run .
 go test ./...
 ```
 
+To build the app as people install it (on Windows, `build/windows-amd64/Hangman.exe`
+and an installer), use mygo's CLI, which the module pins as a tool:
+
+```sh
+go tool mygo build
+```
+
+The icon is `resources/icon.png`, built from [`design/icon`](design/icon).
+
 No system libraries are needed on any platform, and the sound works out of
 the box, unlike the gpui version, where sound was an opt-in cargo feature.
 
