@@ -6,9 +6,10 @@ Needs pycairo, which is easiest in a venv here:
 
     uv venv .venv && uv pip install --python .venv pycairo
     .venv/Scripts/python build.py
-    cp out/icon-1024.png ../../resources/icon.png
+    cp out/icon-1024.png icon.png
 
-mygo makes the platforms' icons from resources/icon.png when it builds.
+mygo.json names icon.png, and mygo makes the platforms' icons from it when it
+builds.
 """
 import math
 import os

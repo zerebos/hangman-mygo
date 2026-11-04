@@ -24,7 +24,8 @@ and an installer), use mygo's CLI, which the module pins as a tool:
 go tool mygo build
 ```
 
-The icon is `resources/icon.png`, built from [`design/icon`](design/icon).
+The icon is [`design/icon/icon.png`](design/icon), named in `mygo.json` and built by
+`design/icon/build.py`.
 
 No system libraries are needed on any platform, and the sound works out of
 the box, unlike the gpui version, where sound was an opt-in cargo feature.
