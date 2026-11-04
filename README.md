@@ -44,6 +44,8 @@ Almost everything moves:
   shrinking in step with it.
 - A match ends on its own summary, its numbers counting up one after another,
   with confetti when you won it.
+- Switching between light and dark fades the whole window from one theme to
+  the other.
 
 The gallows is drawn by hand: every line wobbles a little, tapers, and runs
 past its ends, as if drawn with a marker.

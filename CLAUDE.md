@@ -39,6 +39,11 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 - Layout motion is `Transition` on the element. Stage rows use `App.glideOn`, which skips the glide
   while the stats drawer moves; never use `c.DisableAnimations()` for that, because a click builds
   the view twice in a frame and the second pass then stops the drawer's own spring.
+- The light/dark fade (`themefade.go`) is the one place that does call `c.DisableAnimations()`,
+  and it can because the fade is computed from `c.Now()` rather than with an Animate, so nothing
+  of its own stops. It needs it because mygo's buttons ease their own colors toward the theme,
+  and with the theme changing every frame they would trail the fade. Rule of thumb: disabling
+  animations is safe only while the motion that needs it is plain arithmetic on the clock.
 - Exits leave as copies that take no room. `AfterExits` is what keeps the keyboard and the result
   card from lying across each other.
 - Letters fly with `Transition{Match, Fly}`. A Match pairs one element going with one coming, so a
