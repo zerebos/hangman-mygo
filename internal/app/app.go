@@ -78,6 +78,10 @@ type App struct {
 	lastPack *words.Pack
 	// confetti is the burst a won match's summary throws.
 	confetti []piece
+	// gaveUpFrom is how many wrong guesses the word had when it was given
+	// up on, so the gallows can draw the parts that giving up spent one
+	// after another, or -1 when the word on the board was not given up on.
+	gaveUpFrom int
 	// confirmReset is whether the Reset stats question is open.
 	confirmReset bool
 	// toast is a message for the view to show as a toast on its next build,
@@ -92,7 +96,7 @@ func New(s settings.Settings, opts Options) *App {
 	// The mirror now says what is actually on the board, so a saved match
 	// that was refused is not written back out by the next theme toggle.
 	s.InFlight = saveMatch(g, session)
-	return &App{opts: opts, settings: s, game: g, session: session}
+	return &App{opts: opts, settings: s, game: g, session: session, gaveUpFrom: -1}
 }
 
 // persist writes everything derived from the game and the session back to
@@ -223,6 +227,7 @@ func (a *App) giveUp() {
 	if a.game.IsWordOver() {
 		return
 	}
+	a.gaveUpFrom = a.game.WrongGuesses()
 	match := a.game.GiveUp()
 	a.record(game.Lost, match)
 	a.notice = bad(gaveUp)
@@ -298,6 +303,7 @@ func (a *App) playAgain() {
 // cue plays.
 func (a *App) freshWord(n *notice) {
 	a.play(sounds.Wood.NewWord(), 0)
+	a.gaveUpFrom = -1
 	a.deal++
 	a.summaryShown = false
 	a.notice = n

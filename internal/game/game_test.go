@@ -470,6 +470,10 @@ func TestGiveUpCountsAsALoss(t *testing.T) {
 	if !g.IsWordOver() || g.IsWon() || g.WordsLost() != 1 || g.Result() != Lost {
 		t.Errorf("over %v, won %v, lost %d, result %v", g.IsWordOver(), g.IsWon(), g.WordsLost(), g.Result())
 	}
+	// It spends the rest of the budget, so it is lost as any word is.
+	if g.WrongGuesses() != g.GuessBudget() || g.RemainingGuesses() != 0 {
+		t.Errorf("gave up with %d of %d wrong", g.WrongGuesses(), g.GuessBudget())
+	}
 	// Giving up twice must not double-count.
 	if out := g.GiveUp(); out != MatchRunning {
 		t.Errorf("second give up returned %v", out)

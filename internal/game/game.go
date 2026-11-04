@@ -273,8 +273,9 @@ type Snapshot struct {
 	Current     words.Word
 	Guessed     Letters
 	Wrong       int
-	// Result is stored rather than derived because a word given up on is
-	// lost with guesses in hand and letters still hidden, which looks exactly
+	// Result is stored rather than derived. Giving up now spends the budget,
+	// but a file saved by an earlier version can hold a word given up on
+	// with guesses in hand and letters still hidden, which looks exactly
 	// like a word still in play.
 	Result    Result
 	Remaining []words.Word
@@ -608,10 +609,14 @@ func (g *Game) Hint() HintOutcome {
 
 // GiveUp loses the current word at once, and returns the match's outcome if
 // it was the last word. It does nothing on a word that is already over.
+//
+// It spends whatever is left of the guess budget, so a word given up on is
+// lost the way any word is: the gallows is finished and no guesses are left.
 func (g *Game) GiveUp() MatchOutcome {
 	if g.IsWordOver() {
 		return MatchRunning
 	}
+	g.wrong = g.budget
 	return g.endWord(Lost, Ignored).Match
 }
 

@@ -433,7 +433,7 @@ func TestHintsCluesAndFreshWordsHaveTheirOwnCues(t *testing.T) {
 	}
 }
 
-// Giving up is a loss, and sounds like one.
+// Giving up is a loss, and sounds and looks like one.
 func TestGivingUpSoundsLikeLosing(t *testing.T) {
 	cues := &recorder{}
 	a := New(settings.Settings{}, Options{Speaker: cues})
@@ -441,5 +441,10 @@ func TestGivingUpSoundsLikeLosing(t *testing.T) {
 	tt.Key(ui.Cmd, ui.KeyN)
 	if !cues.heard(sounds.Wood.WordLost()) {
 		t.Error("giving up played no loss")
+	}
+	// And looks like one: the gallows is finished.
+	budget := a.game.GuessBudget()
+	if _, ok := tt.Find(gallowsLabel(budget, budget)); !ok {
+		t.Errorf("the gallows is not finished after giving up: %q", tt.Texts())
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"github.com/zerebos/hangman-mygo/internal/gallows"
+	"github.com/zerebos/hangman-mygo/internal/game"
 )
 
 const (
@@ -19,6 +20,9 @@ const (
 	swayLost  = 11
 	// swayCycles is how many swings it makes before it comes to rest.
 	swayCycles = 3.5
+	// partStep is how much longer the draw-on takes for each extra part,
+	// when giving up spends several at once.
+	partStep = 220 * time.Millisecond
 	// penDot is the radius of the pen tip leading a stroke being drawn, in
 	// design units.
 	penDot = 5
@@ -54,9 +58,17 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 	}
 
 	box := a.glideOn(ui.Box(c.Key("gallows")).FillWidth().Grow(1).MinHeight(160)).Label(gallowsLabel(wrong, budget))
+	// The parts this frame draws on: the newest one, or every part giving up
+	// spent, one after another.
+	from := max(wrong-1, 0)
+	if a.gaveUpFrom >= 0 && a.game.Result() == game.Lost {
+		from = a.gaveUpFrom
+	}
+	settled := gallows.PartsDrawn(budget, from)
+	drawn := gallows.PartsDrawn(budget, wrong)
 	progress, swing := float32(1), float32(0)
 	if wrong > 0 {
-		progress = once(box, "draw", a.run(wrong), drawOn, ui.EaseOut)
+		progress = once(box, "draw", a.run(wrong), drawOn+partStep*time.Duration(max(drawn-settled-1, 0)), ui.EaseOut)
 		t := once(box, "sway", a.run(wrong), swayTime, ui.Linear)
 		angle := float32(swayAngle)
 		if lost {
@@ -66,8 +78,6 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 		// the part lands, and ends exactly where it started.
 		swing = angle * (1 - t) * (1 - t) * float32(math.Sin(float64(t)*swayCycles*2*math.Pi))
 	}
-	settled := gallows.PartsDrawn(budget, max(wrong-1, 0))
-	drawn := gallows.PartsDrawn(budget, wrong)
 
 	// The figure is built whole and cut to the newest part's progress only
 	// after it is roughened, so a hand-drawn line keeps its wobble while it
@@ -89,11 +99,18 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 			still = append(still, look(s, i))
 		}
 	}
+	// The fresh strokes share the progress in turn, so several parts draw
+	// on one after another; the face, after the last part, goes with it.
+	partsFresh := max(drawn-settled, 1)
 	for i, s := range parts {
 		s = look(s, 100+i)
 		if i >= fresh {
-			s = s.Partial(progress)
-			drawing = append(drawing, s)
+			turn := float32(min(i, drawn-1) - settled)
+			own := min(max(progress*float32(partsFresh)-turn, 0), 1)
+			s = s.Partial(own)
+			if own < 1 && len(s.Points) > 0 {
+				drawing = append(drawing, s)
+			}
 		}
 		hanging = append(hanging, s)
 	}
