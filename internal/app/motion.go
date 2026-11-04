@@ -59,10 +59,6 @@ type reveal struct {
 // winReveal is the whole word resolving left to right, once, when it is won.
 var winReveal = reveal{fade: 260 * time.Millisecond, step: 55 * time.Millisecond, rise: 7}
 
-// guessReveal is the cells one correct guess turned over: quicker and
-// tighter, because it is feedback on one guess rather than the end.
-var guessReveal = reveal{fade: 200 * time.Millisecond, step: 70 * time.Millisecond, rise: 5}
-
 // play fades the glyph in as the index-th letter of the reveal. Only the
 // paint moves, so the row measures the same the whole way through.
 func (r reveal) play(glyph ui.Element, key string, run uint64, index int) {
@@ -126,15 +122,31 @@ var (
 // letterMatch is the identity a letter shares between its key and where it
 // lands, so the one appearing flies from the one gone. The deal is part of
 // it, so a letter of the word just played never flies into the keyboard of
-// the next.
+// the next, and n tells apart the flights of one letter to several cells.
 type letterMatch struct {
 	deal   int
 	letter rune
+	n      int
 }
 
-// flight is the transition of either end of a letter's flight.
-func flight(deal int, letter rune) ui.ElementTransition {
-	return ui.ElementTransition{Animation: &ui.Snappy, Match: letterMatch{deal, letter}, Fly: true}
+// flight is the transition of either end of a letter's n-th flight. Later
+// flights leave a beat after earlier ones, so a letter that fills several
+// cells reads as a little stream rather than a burst.
+func flight(deal int, letter rune, n int) ui.ElementTransition {
+	a := ui.Snappy
+	a.Delay = time.Duration(n) * 45 * time.Millisecond
+	return ui.ElementTransition{Animation: &a, Match: letterMatch{deal, letter, n}, Fly: true}
+}
+
+// occurrences is how many times letter is in word.
+func occurrences(word string, letter rune) int {
+	n := 0
+	for _, r := range word {
+		if r == letter {
+			n++
+		}
+	}
+	return n
 }
 
 // pipPop swells a pip to nearly twice its size and settles it back with a

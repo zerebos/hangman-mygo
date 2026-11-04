@@ -109,7 +109,7 @@ func (a *App) missed(c *ui.Context, p palette) {
 			tile := ui.Box(c.Key(r)).Size(26, 26).Center().Radius(6).Background(p.Danger.Alpha(0.15)).
 				Border(1, p.Danger.Alpha(0.5))
 			if r == a.lastGuess {
-				tile.Transition(flight(a.deal, r))
+				tile.Transition(flight(a.deal, r, 0))
 			} else {
 				tile.Transition(glide)
 			}
@@ -200,20 +200,14 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 			key = "shown"
 		}
 		g := ui.Text(c.Key(key), text).Height(cellH).FontSize(40).Bold().Font("monospace").TextColor(glyph)
-		// The first cell the last guess filled flies in from its key; the
-		// letter's other cells fade up after it. A word can show a match only
-		// once, so only one cell can fly.
-		if fresh == 0 {
-			g.Transition(flight(a.deal, cell.Value))
-		}
-		// The win comes next: the guess that wins also reveals letters, and
-		// taking the win means the row plays one flourish, not two at once.
+		// Every cell the last guess filled flies in from its key, the n-th
+		// one from the key's n-th stand-in (see key). The rest of a won word
+		// resolves left to right as the flourish for finishing it.
 		switch {
-		case fresh == 0:
+		case fresh >= 0:
+			g.Transition(flight(a.deal, cell.Value, fresh))
 		case a.game.IsWon():
 			winReveal.play(g, "win", uint64(a.game.WordNumber()), index)
-		case fresh >= 0:
-			guessReveal.play(g, "guess", uint64(guessCount(a.game)), fresh)
 		}
 		if cell.Guessable {
 			ui.Box(c).FillWidth().Height(ruleH).Radius(2).Background(rule)
@@ -269,11 +263,26 @@ func (a *App) key(c *ui.Context, p palette, letter rune) {
 	if state == keyAvailable {
 		// The key is where its letter flies from once it is guessed: into
 		// the word if it is there, and onto the missed row if it is not.
-		if ui.Button(c.Key(letter), label).Size(keySize, keySize).Padding(0).Bold().FontSize(16).
-			Transition(flight(a.deal, letter)).
-			Tooltip("Guess " + label).Clicked() {
-			a.guess(letter)
-		}
+		//
+		// A shared element pairs one element going with one coming, so a
+		// key can start only one flight. A letter that fills several cells
+		// needs one start for each, so the key carries a stand-in for each
+		// cell after the first: a copy of its face under it, unseen until
+		// the guess takes all of them away at once and each flies to its
+		// own cell.
+		ui.Box(c.Key(letter)).Size(keySize, keySize).Children(func() {
+			for n := 1; n < occurrences(a.game.Word(), letter); n++ {
+				ui.Box(c.Key(n)).Absolute().Top(0).Left(0).Size(keySize, keySize).Center().
+					Radius(p.Radius).Background(p.Surface).Border(1, p.Border).
+					IgnoreInput(true).AccessHidden(true).Transition(flight(a.deal, letter, n)).
+					Children(func() { ui.Text(c, label).Bold().FontSize(16) })
+			}
+			if ui.Button(c.Key("key"), label).Size(keySize, keySize).Padding(0).Bold().FontSize(16).
+				Transition(flight(a.deal, letter, 0)).
+				Tooltip("Guess " + label).Clicked() {
+				a.guess(letter)
+			}
+		})
 		return
 	}
 	fill := p.Success

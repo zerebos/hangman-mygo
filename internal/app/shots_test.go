@@ -119,6 +119,20 @@ func TestShots(t *testing.T) {
 		tt.Advance(150 * time.Millisecond)
 		shot(tt, "mid-win"+suffix)
 
+		// A letter filling three cells, each flying from its own stand-in.
+		banana, err := game.FromWordsWithSeed(1, "BANANA")
+		if err != nil {
+			t.Fatal(err)
+		}
+		a.game = banana
+		a.freshWord(nil)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Key(0, ui.KeyA)
+		tt.Advance(150 * time.Millisecond)
+		shot(tt, "mid-triple"+suffix)
+		tt.Advance(time.Second)
+
 		// A won match's summary: counting up under the confetti, then at rest.
 		short, err := game.FromWordsWithSeed(3, "AB", "CD", "EF")
 		if err != nil {
