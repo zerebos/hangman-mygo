@@ -363,11 +363,11 @@ func TestEachGuessPlaysItsCue(t *testing.T) {
 		name string
 		cue  []float32
 	}{
-		// ABC is three cells, so the notes are spread to land the last on
-		// the top step: 0, then half way, then the top.
+		// ABC is three distinct letters, so the notes are spread to land the
+		// last on the top step: the first, half way, then the octave.
 		{"first right", sounds.Wood.Right(0)},
-		{"second right", sounds.Wood.Right(5)},
-		{"wrong", sounds.Wood.Wrong()},
+		{"second right", sounds.Wood.Right(sounds.Step(1, 3))},
+		{"first wrong", sounds.Wood.Wrong(0)},
 	} {
 		if !cues.heard(want.cue) {
 			t.Errorf("did not hear the %s", want.name)

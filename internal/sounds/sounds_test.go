@@ -11,12 +11,11 @@ func cues() map[string][]float32 {
 	for _, p := range []Palette{Wood} {
 		for name, s := range map[string][]float32{
 			"right":       p.Right(0),
-			"right high":  p.Right(Top),
-			"right x3":    p.Right(3, 4, 5),
-			"right x9":    p.Right(1, 2, 3, 4, 5, 6, 7, 8, 9),
-			"wrong":       p.Wrong(),
+			"right top":   p.Right(Top),
+			"wrong":       p.Wrong(0),
+			"wrong low":   p.Wrong(Top),
 			"hint":        p.Hint(2),
-			"hint x9":     p.Hint(1, 2, 3, 4, 5, 6, 7, 8, 9),
+			"hint top":    p.Hint(Top),
 			"word won":    p.WordWon(),
 			"word lost":   p.WordLost(),
 			"match won":   p.MatchWon(),
@@ -77,34 +76,32 @@ func TestTheRightLetterClimbs(t *testing.T) {
 	}
 }
 
-// Plucking a letter several times takes longer, a beat per extra cell.
-func TestALetterInSeveralCellsPlucksEachOfThem(t *testing.T) {
-	for _, p := range []Palette{Wood} {
-		one, three := len(p.Right(0)), len(p.Right(0, 1, 2))
-		if three <= one {
-			t.Errorf("%s: three plucks %d samples, one %d", p.Name, three, one)
-		}
-	}
-}
-
-// A word climbs the scale to its last cell, whatever its length, and a
-// letter in several cells plays a rising run rather than one note twice.
-func TestAWordClimbsToTheTopOnItsLastCell(t *testing.T) {
-	for _, cells := range []int{1, 2, 3, 6, 10, 14} {
+// One guess is one note, and a word's right letters climb to the octave on
+// its last one, its wrong letters fall to the octave below on the last one
+// the budget allows, whatever their number.
+func TestAWordClimbsToItsOctaveAndMissesFallToTheirs(t *testing.T) {
+	for _, n := range []int{1, 2, 3, 6, 10} {
 		prev := -1
-		for filled := range cells {
-			step := Steps(filled, 1, cells)[0]
+		for k := range n {
+			step := Step(k, n)
 			if step < prev {
-				t.Errorf("%d cells: cell %d steps down to %d from %d", cells, filled, step, prev)
+				t.Errorf("%d guesses: guess %d steps back to %d from %d", n, k, step, prev)
 			}
 			prev = step
 		}
 		if prev != Top {
-			t.Errorf("%d cells: the last cell plays %d, not the top %d", cells, prev, Top)
+			t.Errorf("%d guesses: the last plays step %d, not %d", n, prev, Top)
 		}
 	}
-	run := Steps(2, 3, 10)
-	if !(run[0] < run[1] && run[1] < run[2]) {
-		t.Errorf("a letter in three cells plays %v, not a rising run", run)
+	if scaleNote(Top) != root+12 {
+		t.Errorf("the top of the climb is note %d, not the octave %d", scaleNote(Top), root+12)
+	}
+	if missNote(Top) != missRoot-12 {
+		t.Errorf("the bottom of the fall is note %d, not the octave %d", missNote(Top), missRoot-12)
+	}
+	for step := 1; step <= Top; step++ {
+		if missNote(step) >= missNote(step-1) {
+			t.Errorf("miss %d is note %d, not below %d", step, missNote(step), missNote(step-1))
+		}
 	}
 }

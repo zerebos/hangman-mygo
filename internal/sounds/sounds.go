@@ -13,14 +13,14 @@ import (
 	"math/rand/v2"
 )
 
-// Palette is one set of the game's cues. Right and Hint play one note for
-// each cell the letter fills, at the steps up the scale they are given (see
-// Steps).
+// Palette is one set of the game's cues. Right, Hint and Wrong each play
+// one note, at the step they are given (see Step): up the scale for right
+// letters, down it for wrong ones.
 type Palette struct {
 	Name       string
-	Right      func(steps ...int) []float32
-	Wrong      func() []float32
-	Hint       func(steps ...int) []float32
+	Right      func(step int) []float32
+	Wrong      func(step int) []float32
+	Hint       func(step int) []float32
 	WordWon    func() []float32
 	WordLost   func() []float32
 	MatchWon   func() []float32
@@ -51,26 +51,35 @@ func freq(note int) float64 {
 	return 440 * math.Pow(2, float64(note-69)/12)
 }
 
-// Top is the highest step a word climbs to: two octaves of the pentatonic
-// scale.
-const Top = 2*len(pentatonic) - 1
+// Top is the step a climb or a fall ends on: one octave of the pentatonic
+// scale away from where it began. A word's last right letter lands on C6,
+// the octave of the first and the note the win resolves to, so solving a
+// word sounds like arriving rather than reaching.
+const Top = len(pentatonic)
 
-// Steps is the notes a guess plays: one for each of the count cells it
-// filled, after filled cells of the word's cells were already showing, spread
-// over the scale so the word's last cell always lands on Top. A word being
-// solved is heard climbing to its end, and a letter in two cells plays a
-// little run rather than one note twice, which only blurs.
-func Steps(filled, count, cells int) []int {
-	steps := make([]int, max(count, 1))
-	for n := range steps {
-		ordinal := filled + n
-		if cells <= 1 {
-			steps[n] = Top
-			continue
-		}
-		steps[n] = int(math.Round(float64(ordinal) * float64(Top) / float64(cells-1)))
+// Step is which note the k-th of n guesses plays, counting from 0, spread so
+// the n-th always lands on Top: k counts right letters out of the word's
+// distinct letters, or wrong ones out of the guess budget. One guess is one
+// note, however many cells it fills.
+func Step(k, n int) int {
+	if n <= 1 {
+		return Top
 	}
-	return steps
+	return int(math.Round(float64(min(max(k, 0), n-1)) * float64(Top) / float64(n-1)))
+}
+
+// minor is the minor pentatonic scale in semitones below its root, for the
+// fall of the wrong letters.
+var minor = [...]int{0, 2, 5, 7, 9}
+
+// missRoot is the note the wrong letters fall from (A3): the key of the word
+// lost phrase, so a lost word sounds like the end of a fall already heard.
+const missRoot = 57
+
+// missNote is the step-th note down the minor scale from missRoot.
+func missNote(step int) int {
+	step = max(step, 0)
+	return missRoot - 12*(step/len(minor)) - minor[step%len(minor)]
 }
 
 // scaleNote is the step-th note of the pentatonic scale above root, climbing
@@ -179,63 +188,33 @@ func knock(f float64) buffer {
 	return b
 }
 
-// scratch is a marker dragged across paper: noise kept to the middle of the
-// range, swelling in and out over its length, with a little grain.
-func scratch(seconds float64) buffer {
-	b := newBuffer(seconds)
-	rng := rand.New(rand.NewPCG(11, 5))
-	lo, hi := 0.0, 0.0
-	for i := range b {
-		t := float64(i) / seconds / Rate
-		x := rng.Float64()*2 - 1
-		hi += 0.5 * (x - hi)   // keep the hiss below the top
-		lo += 0.02 * (hi - lo) // and take the rumble out
-		grain := 0.75 + 0.25*math.Sin(2*math.Pi*float64(i)/Rate*37)
-		b[i] = (hi - lo) * math.Sin(math.Pi*t) * grain
-	}
-	return b
-}
-
-// woodRight is a right letter: the step-th pluck up the scale, one step for each
-// right letter of the word so far, so a word being solved is heard climbing.
-// A letter filling count cells plucks count times, a beat apart, as its
-// letters fly into the word one after another.
-func woodRight(steps ...int) []float32 {
-	if len(steps) == 0 {
-		steps = []int{0}
-	}
-	b := newBuffer(0.9 + noteApart*float64(len(steps)-1))
-	for n, step := range steps {
-		b.mix(pluck(freq(scaleNote(step)), 0.9, 1), noteApart*float64(n), 1)
-	}
+// woodRight is a right letter: a pluck at the step-th note up the scale, so
+// a word being solved is heard climbing to its octave.
+func woodRight(step int) []float32 {
+	b := newBuffer(0.9)
+	b.mix(pluck(freq(scaleNote(step)), 0.9, 1), 0, 1)
 	return b.samples(0.55)
 }
 
-// noteApart is how far apart the notes of a letter in several cells sound,
-// in step with their flights.
-const noteApart = 0.045
-
-// woodWrong is a wrong letter: a knock, with the scratch of the pen drawing the
-// new part on top of it.
-func woodWrong() []float32 {
-	b := newBuffer(0.55)
-	b.mix(knock(98), 0, 1)
-	b.mix(scratch(0.45), 0.03, 0.18)
-	return b.samples(0.42)
+// woodWrong is a wrong letter: the same wooden bar, struck low and damped at
+// once, at the step-th note down a minor scale. It is one instrument with
+// the right letters and the word lost, falling where they climb.
+func woodWrong(step int) []float32 {
+	f := freq(missNote(step))
+	b := newBuffer(0.5)
+	b.mix(pluck(f, 0.45, 0.35), 0, 1)
+	// A little of the mallet's body, so it lands as a dead note rather than
+	// a quiet one.
+	b.mix(knock(f), 0, 0.35)
+	return b.samples(0.45)
 }
 
 // woodHint is a letter bought with a guess: the right-letter pluck, with a
 // little shimmer two octaves above it to mark it as given rather than found.
-func woodHint(steps ...int) []float32 {
-	if len(steps) == 0 {
-		steps = []int{0}
-	}
-	f := freq(scaleNote(steps[len(steps)-1]))
-	right := woodRight(steps...)
-	b := newBuffer(max(float64(len(right))/Rate, 0.7))
-	for i, v := range right {
-		b[i] += float64(v)
-	}
+func woodHint(step int) []float32 {
+	f := freq(scaleNote(step))
+	b := newBuffer(0.9)
+	b.mix(pluck(f, 0.9, 1), 0, 1)
 	b.mix(pluck(f*4, 0.6, 0.2), 0.03, 0.25)
 	b.mix(pluck(f*4*1.5, 0.6, 0.2), 0.09, 0.18)
 	return b.samples(0.55)

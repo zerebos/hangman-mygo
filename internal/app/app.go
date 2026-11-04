@@ -123,9 +123,9 @@ func (a *App) guess(letter rune) {
 
 	switch out.Result {
 	case game.Correct:
-		a.play(sounds.Wood.Right(a.noteSteps(a.lastGuess)...), 0)
+		a.play(sounds.Wood.Right(a.rightStep()), 0)
 	case game.Wrong:
-		a.play(sounds.Wood.Wrong(), 0)
+		a.play(sounds.Wood.Wrong(sounds.Step(a.game.WrongGuesses()-1, a.game.GuessBudget())), 0)
 	}
 	a.playWordEnd(out.Word)
 
@@ -154,7 +154,7 @@ func (a *App) hint() {
 	}
 	a.lastGuess = out.Letter
 	earned := a.record(out.Word, out.Match)
-	a.play(sounds.Wood.Hint(a.noteSteps(out.Letter)...), 0)
+	a.play(sounds.Wood.Hint(a.rightStep()), 0)
 	a.playWordEnd(out.Word)
 	switch out.Word {
 	case game.Won:
@@ -187,21 +187,18 @@ func (a *App) playWordEnd(word game.Result) {
 	}
 }
 
-// noteSteps is the notes a right letter just guessed plays: one for each
-// cell it filled, placed by how many of the word's cells were showing
-// before it, so the word climbs the scale to its last cell (sounds.Steps).
-func (a *App) noteSteps(letter rune) []int {
-	cells, showing := 0, 0
-	for _, cell := range a.game.Cells() {
-		if cell.Guessable {
-			cells++
-			if cell.Revealed {
-				showing++
-			}
+// rightStep is the note a right letter just guessed plays: how many of the
+// word's distinct letters had been found before it, out of all of them, so
+// the word climbs to its octave on its last letter (sounds.Step).
+func (a *App) rightStep() int {
+	var distinct, found game.Letters
+	for _, r := range a.game.Word() {
+		distinct = distinct.With(r)
+		if a.game.Guessed().Has(r) {
+			found = found.With(r)
 		}
 	}
-	count := occurrences(a.game.Word(), letter)
-	return sounds.Steps(showing-count, count, cells)
+	return sounds.Step(found.Len()-1, distinct.Len())
 }
 
 // showClue puts the clue on screen. Nothing is recorded or charged.
