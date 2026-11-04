@@ -115,3 +115,17 @@ var (
 		Exit:      &ui.Motion{Collapse: true},
 	}
 )
+
+// letterMatch is the identity a letter shares between its key and where it
+// lands, so the one appearing flies from the one gone. The deal is part of
+// it, so a letter of the word just played never flies into the keyboard of
+// the next.
+type letterMatch struct {
+	deal   int
+	letter rune
+}
+
+// flight is the transition of either end of a letter's flight.
+func flight(deal int, letter rune) ui.ElementTransition {
+	return ui.ElementTransition{Animation: &ui.Snappy, Match: letterMatch{deal, letter}, Fly: true}
+}

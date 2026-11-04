@@ -14,6 +14,7 @@ func (a *App) stage(c *ui.Context, p palette) {
 		ui.Column(c).FillHeight().FillWidth().MaxWidth(stageW).AlignItems(ui.Center).Gap(10).Children(func() {
 			drawGallows(c, p, a.game.WrongGuesses(), a.game.GuessBudget())
 			a.pips(c, p)
+			a.missed(c, p)
 			a.word(c, p)
 			a.feedback(c, p)
 			// The keyboard and the result card take turns in one slot. The
@@ -70,6 +71,29 @@ func (a *App) pips(c *ui.Context, p palette) {
 			color = p.Danger
 		}
 		ui.Textf(c, "%d guess%s left", left, s).FontSize(12).TextColor(color)
+	})
+}
+
+// missed is the letters guessed wrong, as small tiles under the gallows. A
+// wrong guess flies here from its key, and the tiles already here make room.
+// The row keeps its height while empty, so the first miss moves nothing.
+func (a *App) missed(c *ui.Context, p palette) {
+	ui.Row(c.Key("missed")).Height(26).Gap(6).AlignItems(ui.Center).Transition(glide).Children(func() {
+		for r := 'A'; r <= 'Z'; r++ {
+			if keyStateOf(a.game, r) != keyWrong {
+				continue
+			}
+			tile := ui.Box(c.Key(r)).Size(26, 26).Center().Radius(6).Background(p.Danger.Alpha(0.15)).
+				Border(1, p.Danger.Alpha(0.5))
+			if r == a.lastGuess {
+				tile.Transition(flight(a.deal, r))
+			} else {
+				tile.Transition(glide)
+			}
+			tile.Children(func() {
+				ui.Text(c, string(r)).FontSize(13).Bold().TextColor(p.Danger)
+			})
+		}
 	})
 }
 
@@ -146,10 +170,23 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 		if cell.Revealed {
 			text = string(cell.Value)
 		}
-		g := ui.Text(c.Key("glyph"), text).Height(cellH).FontSize(40).Bold().Font("monospace").TextColor(glyph)
-		// The win comes first: the guess that wins also reveals letters, and
+		// A revealed glyph is a new element rather than the hidden one with
+		// new text, because a shared element flies only as it appears.
+		key := "hidden"
+		if cell.Revealed {
+			key = "shown"
+		}
+		g := ui.Text(c.Key(key), text).Height(cellH).FontSize(40).Bold().Font("monospace").TextColor(glyph)
+		// The first cell the last guess filled flies in from its key; the
+		// letter's other cells fade up after it. A word can show a match only
+		// once, so only one cell can fly.
+		if fresh == 0 {
+			g.Transition(flight(a.deal, cell.Value))
+		}
+		// The win comes next: the guess that wins also reveals letters, and
 		// taking the win means the row plays one flourish, not two at once.
 		switch {
+		case fresh == 0:
 		case a.game.IsWon():
 			winReveal.play(g, "win", uint64(a.game.WordNumber()), index)
 		case fresh >= 0:
@@ -165,7 +202,9 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 // while there is nothing to report. A finished word says its piece in the
 // result card instead.
 func (a *App) feedback(c *ui.Context, p palette) {
-	ui.Row(c.Key("feedback")).Height(24).AlignItems(ui.Center).Transition(glide).Children(func() {
+	// Full width whatever it says, so its spring never squeezes the text
+	// while the line is empty during a result.
+	ui.Row(c.Key("feedback")).FillWidth().Height(24).Justify(ui.Center).AlignItems(ui.Center).Transition(glide).Children(func() {
 		text, color, italic := idleHint, p.TextMuted, false
 		switch n := a.notice; {
 		case a.game.IsWordOver():
@@ -177,7 +216,8 @@ func (a *App) feedback(c *ui.Context, p palette) {
 			}
 		}
 		// One text whose content crossfades as the notice changes.
-		line := ui.Text(c.Key("notice"), text).FontSize(13).TextColor(color).ContentTransition(ui.ContentTransition{})
+		line := ui.Text(c.Key("notice"), text).FontSize(13).TextColor(color).SingleLine().
+			ContentTransition(ui.ContentTransition{})
 		if italic {
 			line.Italic()
 		}
@@ -204,7 +244,10 @@ func (a *App) key(c *ui.Context, p palette, letter rune) {
 	label := string(letter)
 	state := keyStateOf(a.game, letter)
 	if state == keyAvailable {
+		// The key is where its letter flies from once it is guessed: into
+		// the word if it is there, and onto the missed row if it is not.
 		if ui.Button(c.Key(letter), label).Size(keySize, keySize).Padding(0).Bold().FontSize(16).
+			Transition(flight(a.deal, letter)).
 			Tooltip("Guess " + label).Clicked() {
 			a.guess(letter)
 		}

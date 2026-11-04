@@ -101,6 +101,13 @@ func TestShots(t *testing.T) {
 		tt.Key(0, ui.KeyA+ui.Key(wrongLetter(a.game)-'A'))
 		tt.Advance(120 * time.Millisecond)
 		shot(tt, "mid-wrong"+suffix)
+		tt.Advance(time.Second)
+
+		// Part way through a correct letter's flight into the word.
+		tt.Key(0, ui.KeyA+ui.Key(rune(a.game.Word()[len(a.game.Word())-1])-'A'))
+		tt.Advance(110 * time.Millisecond)
+		shot(tt, "mid-right"+suffix)
+		tt.Advance(time.Second)
 
 		// Part way through the win reveal.
 		for _, r := range a.game.Word() {
