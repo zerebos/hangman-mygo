@@ -63,7 +63,9 @@ is a soft wooden pluck, like a marimba, on a pentatonic scale:
 - A wrong letter is the same wooden bar struck low and damped. Each one falls
   a semitone, and the last guess you can afford lands on the root of the word
   lost phrase, so losing a word ends a fall you have been hearing.
-- A hint is the right-letter pluck with a shimmer above it.
+- A hint plays what it is: the low note of the miss it costs, then the note of
+  the letter it gives.
+- A fresh word opens on a quiet low fifth, and the clue on a quiet high glint.
 - A word solved ends on a short rising arpeggio, and a word lost on three soft
   notes stepping down.
 - The match's summary opens on a longer phrase if you won it, and a gentle
