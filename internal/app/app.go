@@ -125,7 +125,7 @@ func (a *App) guess(letter rune) {
 	case game.Correct:
 		a.play(sounds.Wood.Right(a.rightStep()), 0)
 	case game.Wrong:
-		a.play(sounds.Wood.Wrong(sounds.WrongStep(a.game.WrongGuesses()-1, a.game.GuessBudget())), 0)
+		a.play(sounds.Wood.Wrong(a.wrongStep()), 0)
 	}
 	a.playWordEnd(out.Word)
 
@@ -154,7 +154,7 @@ func (a *App) hint() {
 	}
 	a.lastGuess = out.Letter
 	earned := a.record(out.Word, out.Match)
-	a.play(sounds.Wood.Hint(a.rightStep()), 0)
+	a.play(sounds.Wood.Hint(a.rightStep(), a.wrongStep()), 0)
 	a.playWordEnd(out.Word)
 	switch out.Word {
 	case game.Won:
@@ -187,6 +187,12 @@ func (a *App) playWordEnd(word game.Result) {
 	}
 }
 
+// wrongStep is the note the wrong guess just spent plays, a hint's
+// included: the semitones it has fallen to (sounds.WrongStep).
+func (a *App) wrongStep() int {
+	return sounds.WrongStep(a.game.WrongGuesses()-1, a.game.GuessBudget())
+}
+
 // rightStep is the note a right letter just guessed plays: how many of the
 // word's distinct letters had been found before it, out of all of them, so
 // the word climbs a note a letter to its octave on the last (sounds.RightStep).
@@ -205,6 +211,7 @@ func (a *App) rightStep() int {
 func (a *App) showClue() {
 	if canShowClue(a.game, a.clueShown) {
 		a.clueShown = true
+		a.play(sounds.Wood.Clue(), 0)
 	}
 }
 
@@ -282,7 +289,12 @@ func (a *App) playAgain() {
 }
 
 // freshWord clears what belongs to the word that is gone.
+//
+// Every way a fresh word is dealt comes through here (the next word, a new
+// difficulty, a list loaded, Play again), so this is where the fresh word's
+// cue plays.
 func (a *App) freshWord(n *notice) {
+	a.play(sounds.Wood.NewWord(), 0)
 	a.deal++
 	a.summaryShown = false
 	a.notice = n

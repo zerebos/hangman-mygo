@@ -13,14 +13,17 @@ import (
 	"math/rand/v2"
 )
 
-// Palette is one set of the game's cues. Right, Hint and Wrong each play
-// one note, at the step they are given: up the scale for right letters (see
-// RightStep), down by semitones for wrong ones (see WrongStep).
+// Palette is one set of the game's cues. Right and Wrong each play one
+// note, at the step they are given: up the scale for right letters (see
+// RightStep), down by semitones for wrong ones (see WrongStep). Hint plays
+// one of each, the wrong note it costs and then the right note it gives.
 type Palette struct {
 	Name       string
 	Right      func(step int) []float32
 	Wrong      func(step int) []float32
-	Hint       func(step int) []float32
+	Hint       func(rightStep, wrongStep int) []float32
+	NewWord    func() []float32
+	Clue       func() []float32
 	WordWon    func() []float32
 	WordLost   func() []float32
 	MatchWon   func() []float32
@@ -29,7 +32,7 @@ type Palette struct {
 
 // Wood is the marimba palette.
 var Wood = Palette{
-	Name: "wood", Right: woodRight, Wrong: woodWrong, Hint: woodHint,
+	Name: "wood", Right: woodRight, Wrong: woodWrong, Hint: woodHint, NewWord: woodNewWord, Clue: woodClue,
 	WordWon: woodWordWon, WordLost: woodWordLost, MatchWon: woodMatchWon, MatchEnded: woodMatchEnded,
 }
 
@@ -207,15 +210,37 @@ func woodWrong(step int) []float32 {
 	return b.samples(0.45)
 }
 
-// woodHint is a letter bought with a guess: the right-letter pluck, with a
-// little shimmer two octaves above it to mark it as given rather than found.
-func woodHint(step int) []float32 {
-	f := freq(scaleNote(step))
-	b := newBuffer(0.9)
-	b.mix(pluck(f, 0.9, 1), 0, 1)
-	b.mix(pluck(f*4, 0.6, 0.2), 0.03, 0.25)
-	b.mix(pluck(f*4*1.5, 0.6, 0.2), 0.09, 0.18)
+// woodHint is a letter bought with a guess: the miss it costs, then the
+// letter it gives. The low damped note of the wrong letters at wrongStep
+// (the guess really is spent, so the fall goes on from there), and a beat
+// later the right-letter pluck at rightStep. Pay, then receive: two sounds
+// the player knows, in an order nothing else plays.
+func woodHint(rightStep, wrongStep int) []float32 {
+	b := newBuffer(1.05)
+	paid := woodWrong(wrongStep)
+	for i, v := range paid {
+		b[i] += float64(v) * 0.8
+	}
+	b.mix(pluck(freq(scaleNote(rightStep)), 0.9, 1), 0.13, 0.55/0.45)
 	return b.samples(0.55)
+}
+
+// woodNewWord is a fresh word dealt: a low open fifth, played lightly
+// upward, quiet and in no hurry, like a clean page before the climb starts.
+func woodNewWord() []float32 {
+	b := newBuffer(1.1)
+	b.mix(pluck(freq(48), 1.0, 0.4), 0, 0.8)
+	b.mix(pluck(freq(55), 0.95, 0.4), 0.06, 0.7)
+	return b.samples(0.32)
+}
+
+// woodClue is the clue shown: a soft high glint of two notes stepping down,
+// outside the climb, because a clue gives no letter and costs nothing.
+func woodClue() []float32 {
+	b := newBuffer(0.95)
+	b.mix(pluck(freq(91), 0.8, 0.3), 0, 1)
+	b.mix(pluck(freq(88), 0.85, 0.3), 0.08, 0.9)
+	return b.samples(0.28)
 }
 
 // phrase plucks notes one after another, gap seconds apart, and lets the

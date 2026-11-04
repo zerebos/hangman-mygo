@@ -398,3 +398,37 @@ func TestEachGuessPlaysItsCue(t *testing.T) {
 		t.Errorf("%d cues played with the sound off", len(cues.played)-before)
 	}
 }
+
+// A hint plays the wrong note it costs and the right note it gives, the
+// clue its glint, and a fresh word its own cue.
+func TestHintsCluesAndFreshWordsHaveTheirOwnCues(t *testing.T) {
+	cues := &recorder{}
+	a := New(settings.Settings{}, Options{Speaker: cues})
+	g, err := game.FromPackWithSeed(mustPack(t, `{"words": [
+		{"word": "Cat", "clue": "It purrs."},
+		{"word": "Dog", "clue": "It barks."}
+	]}`), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.game = g
+	tt := ui.NewTester(a.View, 1000, 800)
+
+	tt.Key(ui.Cmd, ui.KeyH)
+	// The first of three letters found, and the first of six misses spent.
+	if !cues.heard(sounds.Wood.Hint(sounds.RightStep(0, 3), sounds.WrongStep(0, 6))) {
+		t.Error("the hint did not play the cost and the letter")
+	}
+	tt.Key(ui.Cmd, ui.KeyL)
+	if !cues.heard(sounds.Wood.Clue()) {
+		t.Error("the clue played no cue")
+	}
+	if cues.heard(sounds.Wood.NewWord()) {
+		t.Fatal("a fresh word's cue played before any word was dealt")
+	}
+	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(0, ui.KeyEnter)
+	if !cues.heard(sounds.Wood.NewWord()) {
+		t.Error("the next word played no cue")
+	}
+}
