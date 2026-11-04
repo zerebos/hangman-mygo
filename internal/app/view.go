@@ -4,8 +4,6 @@ import (
 	"runtime"
 
 	"github.com/egoist/mygo/ui"
-
-	"github.com/zerebos/hangman-mygo/internal/settings"
 )
 
 // The stage's measurements.
@@ -50,12 +48,7 @@ func paletteFor(t *ui.Theme) palette {
 
 // View builds the window from the state, for every frame.
 func (a *App) View(c *ui.Context) {
-	if a.settings.Theme == settings.Light {
-		c.SetTheme(ui.LightTheme())
-	} else {
-		c.SetTheme(ui.DarkTheme())
-	}
-	p := paletteFor(c.Theme())
+	p := a.theme(c)
 
 	if a.toast != "" {
 		c.Toast(a.toast)
