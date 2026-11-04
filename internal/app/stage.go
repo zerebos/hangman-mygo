@@ -108,7 +108,7 @@ func (a *App) missed(c *ui.Context, p palette) {
 			if keyStateOf(a.game, r) != keyWrong {
 				continue
 			}
-			tile := ui.Box(c.Key(r)).Size(26, 26).Center().Radius(6).Background(p.Danger.Alpha(0.15)).
+			tile := ui.Box(c.Key(r)).Size(26, 26).Center().Radius(6).Label(playedLabel(r, keyWrong)).Background(p.Danger.Alpha(0.15)).
 				Border(1, p.Danger.Alpha(0.5))
 			if r == a.lastGuess {
 				tile.Transition(a.flight(r, 0))
@@ -292,7 +292,9 @@ func (a *App) key(c *ui.Context, p palette, letter rune) {
 		fill = p.Danger
 	}
 	bg, border, text := fill.Alpha(0.85), fill, ui.Hex("#ffffff")
-	tile := ui.Box(c.Key(letter)).Size(keySize, keySize).Center().Radius(p.Radius)
+	// A played key is a tile rather than a button, so it says what it is to
+	// assistive technology itself: the letter, and what its guess found.
+	tile := ui.Box(c.Key(letter)).Size(keySize, keySize).Center().Radius(p.Radius).Label(playedLabel(letter, state))
 	// The key the last guess played fades from an unplayed key's colors into
 	// the ones its guess earned, rather than snapping to them.
 	if letter == a.lastGuess {
@@ -316,7 +318,7 @@ func (a *App) actions(c *ui.Context, p palette) {
 			Tooltip(clueTooltipFor(a.game, a.clueShown) + " (" + chord("L") + ")").Clicked() {
 			a.showClue()
 		}
-		if iconButton(c, "change", iconRotate, "Change word").
+		if iconButton(c, "give-up", iconFlag, "Give up").
 			Tooltip("Give up on this word — counts as a loss (" + chord("N") + ")").Clicked() {
 			a.giveUp()
 		}
@@ -379,4 +381,13 @@ func (a *App) result(c *ui.Context, p palette) {
 // which tells them no more than the blanks on screen do.
 func wordLabel(word string) string {
 	return fmt.Sprintf("The word, %d letters", len([]rune(word)))
+}
+
+// playedLabel is what a played key, or a missed letter, says to assistive
+// technology: the letter, and whether it was in the word.
+func playedLabel(letter rune, state keyState) string {
+	if state == keyCorrect {
+		return string(letter) + ", in the word"
+	}
+	return string(letter) + ", not in the word"
 }

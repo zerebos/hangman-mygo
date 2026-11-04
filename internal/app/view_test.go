@@ -448,3 +448,24 @@ func TestGivingUpSoundsLikeLosing(t *testing.T) {
 		t.Errorf("the gallows is not finished after giving up: %q", tt.Texts())
 	}
 }
+
+// A played key is a tile, not a button, so it names itself to assistive
+// technology: the letter, and what its guess found.
+func TestPlayedKeysSayWhatTheirGuessFound(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	right, wrong := rune(a.game.Word()[0]), wrongLetter(a.game)
+	tt.Key(0, ui.KeyA+ui.Key(right-'A'))
+	tt.Key(0, ui.KeyA+ui.Key(wrong-'A'))
+	tt.Advance(time.Second)
+	for _, label := range []string{playedLabel(right, keyCorrect), playedLabel(wrong, keyWrong)} {
+		if _, ok := tt.Find(label); !ok {
+			t.Errorf("no %q on screen", label)
+		}
+	}
+	if err := tt.Click("Give up"); err != nil {
+		t.Fatal(err)
+	}
+	if !a.game.IsWordOver() {
+		t.Error("Give up did not give up")
+	}
+}

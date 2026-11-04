@@ -82,7 +82,7 @@ silence. `Sound effects` in the ⋯ menu turns it all off, and is remembered.
 | Guess a letter | Type it, or click its key |
 | Reveal a letter (costs one wrong guess) | `Hint`, or `Ctrl+H` (`⌘H` on macOS) |
 | Show what the word means (costs nothing) | `Clue`, or `Ctrl+L` |
-| Give up on the word (counts as a loss) | `Change word`, `Ctrl+N`, or the ⋯ menu |
+| Give up on the word (counts as a loss) | `Give up`, `Ctrl+N`, or the ⋯ menu |
 | Next word once a word ends | `New Game`, or Enter / Space |
 | See the match once its last word ends | `See the match`, or Enter |
 | Play the same difficulty or list again | `Play … again` on the summary, or Enter |
