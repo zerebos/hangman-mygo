@@ -31,10 +31,11 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 
 ## mygo notes
 
-- One-shot effects are `Keyframes` whose `Run` is a count that moves once per event (wrong guesses,
-  guess count, the `deal` of words). A replayed sequence starts from the value it last showed, so
-  every 0-to-1 sequence opens with a 1 ms snap to 0 (see `once`). An element needs a stable key
-  (`c.Key(...)`) to keep its sequence between frames.
+- One-shot effects are `Keyframes` played once per event (a wrong guess, a guess, a word dealt).
+  A sequence replayed through `KeyframeOptions.Run` starts from the value it last showed, so a 0-to-1
+  effect is keyed per run instead (`playKey{name, run}`, see `once`) and starts at 0 on its first
+  frame. Only sequences that start and end on the same value (the shake, the pip pop) replay with
+  `Run`. An element needs a stable key (`c.Key(...)`) to keep its sequences between frames.
 - Layout motion is `Transition` on the element. Stage rows use `App.glideOn`, which skips the glide
   while the stats drawer moves; never use `c.DisableAnimations()` for that, because a click builds
   the view twice in a frame and the second pass then stops the drawer's own spring.
