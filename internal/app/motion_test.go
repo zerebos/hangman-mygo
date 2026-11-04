@@ -105,3 +105,25 @@ func TestTheDrawerSpringsOpenAndShut(t *testing.T) {
 		}
 	}
 }
+
+// With the desktop asking for less motion, nothing travels: the drawer is
+// open at once, and a wrong guess (shake, draw-on, sway, pip, flight) is
+// settled the moment it lands. Swaps that fade still fade in place, as mygo
+// keeps fades under less motion, so they are not checked here.
+func TestLessMotionMeansNothingTravels(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+	if err := tt.Click("More"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("Lifetime stats"); err != nil {
+		t.Fatal(err)
+	}
+	if a.drawerShown != 1 {
+		t.Errorf("drawer at %v with less motion", a.drawerShown)
+	}
+	tt.Key(0, wrongKey(a.game))
+	if tt.FramePending() {
+		t.Error("a wrong guess still animates with less motion")
+	}
+}

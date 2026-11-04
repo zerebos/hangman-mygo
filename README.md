@@ -3,11 +3,9 @@
 A Go port of [hangman-gpui](../hangman-gpui), drawn with the native UI of
 [mygo](https://github.com/egoist/mygo) instead of gpui-kit. hangman-gpui is
 itself a port of [`zerebos/Hangman`](https://github.com/zerebos/Hangman), a
-2015 Java/Swing game, so this keeps the same rules, word packs, layout, sound
-cues and alert messages.
-
-This is phase one, a faithful port. Phase two reworks the interface around
-what mygo does well.
+2015 Java/Swing game. The rules, word packs, scoring, sound cues and alert
+messages are the same; the interface was rethought around what mygo does
+well, which is making every change move.
 
 ## Building and running
 
@@ -22,28 +20,62 @@ go test ./...
 No system libraries are needed on any platform, and the sound cues work out
 of the box, unlike the gpui version, where sound was an opt-in cargo feature.
 
-## Layout
+## The interface
 
-| Package | What it is |
+The window is one stage. The header is also the title bar: the wordmark, a
+dropdown showing where the words come from (a difficulty, or a list of your
+own), the score as chips, a ⋯ menu, and on Windows and Linux the window
+controls, drawn at the header's height. Under it, in one centered column, are
+the gallows, the guesses left and the letters missed, the word with its
+category and clue, and the keyboard.
+
+Almost everything moves:
+
+- A guessed letter flies from its key into every cell it fills, or onto the
+  row of missed letters under the gallows.
+- The newest body part draws itself on behind a pen tip, and the figure swings
+  from the beam as it lands, harder on the guess that loses the word.
+- The word shakes on a wrong guess, the newest pip pops, and a played key
+  fades into the color its guess earned.
+- When a word ends, the keyboard folds away and the result card rises into its
+  place. A new word slides in as the old one slides out.
+- The lifetime stats open as a drawer that pushes the stage aside, the keys
+  shrinking in step with it.
+- A match ends on its own summary, its numbers counting up one after another,
+  with confetti when you won it.
+
+With the desktop's reduce-motion setting on, nothing travels. Fades still
+fade in place.
+
+## Controls
+
+| Action | How |
 | --- | --- |
-| [`internal/words`](internal/words) | The word-pack file format: JSON packs with categories and clues, or one word per line. |
-| [`internal/game`](internal/game) | The rules: a match of ten words, guesses, hints, giving up, and resuming a saved match. |
-| [`internal/stats`](internal/stats) | Points, streaks and the lifetime tally. |
-| [`internal/settings`](internal/settings) | `settings.json`: the theme, the difficulty, the stats and the match in flight. |
-| [`internal/gallows`](internal/gallows) | The gallows drawing as plain polylines. |
-| [`internal/app`](internal/app) | The window: its state, its actions and the mygo view. |
-| [`assets`](assets) | The four bundled packs and the two mp3 cues, embedded in the binary. |
+| Guess a letter | Type it, or click its key |
+| Reveal a letter (costs one wrong guess) | `Hint`, or `Ctrl+H` (`⌘H` on macOS) |
+| Show what the word means (costs nothing) | `Clue`, or `Ctrl+L` |
+| Give up on the word (counts as a loss) | `Change word`, `Ctrl+N`, or the ⋯ menu |
+| Next word once a word ends | `New Game`, or Enter / Space |
+| See the match once its last word ends | `See the match`, or Enter |
+| Play the same difficulty or list again | `Play … again` on the summary, or Enter |
+| Change difficulty (starts a fresh match) | The dropdown beside the wordmark |
+| Load your own word list or pack | `Ctrl+O`, or the ⋯ menu |
+| Show the lifetime stats | The ⋯ menu |
+| Throw the lifetime stats away | `Reset stats`, in the stats drawer, which asks first |
+| Switch between light and dark | The ⋯ menu |
 
-Only `internal/app` and `main.go` import mygo. The other packages are plain
-Go, so their tests run without a window. The view's tests run without one
-too, through mygo's `ui.Tester`, which clicks and types the way a player
-would.
+The strip along the bottom of the window lists the shortcuts, dimming the ones
+the game would refuse right now. Choosing the difficulty already in play does
+nothing mid-match, and switching away from a word you have guessed at counts
+it as a loss, as giving up does. The dropdown says so before you choose.
 
-To look at the window without opening it, render a few states to PNGs:
+A word list loaded from a file can be played again from its summary for as
+long as the game stays open. The list is not saved, so after a relaunch the
+summary offers the difficulties instead.
 
-```sh
-HANGMAN_SHOTS=./shots go test ./internal/app -run TestShots
-```
+The rules themselves (the guess budget per difficulty, hints, clues, word
+packs and scoring) are unchanged from hangman-gpui, whose README explains
+each of them in full.
 
 ## Settings
 
@@ -61,26 +93,38 @@ remembers the window's size and place itself. The file is as forgiving as it
 was: a key holding nonsense costs only that key, and a saved match that no
 real game could have reached is thrown away and a fresh one dealt.
 
-## Controls
+## Layout of the code
 
-| Action | How |
+| Package | What it is |
 | --- | --- |
-| Guess a letter | Type it, or click its key |
-| Reveal a letter (costs one wrong guess) | `Hint`, or `Ctrl+H` (`⌘H` on macOS) |
-| Show what the word means (costs nothing) | `Clue`, or `Ctrl+L` |
-| Next word once a word ends | `New Game`, or Enter / Space |
-| Give up on the word (counts as a loss) | `Change Word`, or `Ctrl+N` |
-| Load your own word list or pack | `Open word list…`, or `Ctrl+O` |
-| Change difficulty (starts a fresh match) | The Easy / Medium / Hard / Insane pills |
-| Show the lifetime stats | `Stats` |
-| Throw the lifetime stats away | `Reset stats`, inside the stats panel, which asks first |
+| [`internal/words`](internal/words) | The word-pack file format: JSON packs with categories and clues, or one word per line. |
+| [`internal/game`](internal/game) | The rules: a match of ten words, guesses, hints, giving up, and resuming a saved match. |
+| [`internal/stats`](internal/stats) | Points, streaks and the lifetime tally. |
+| [`internal/settings`](internal/settings) | `settings.json`: the theme, the difficulty, the stats and the match in flight. |
+| [`internal/gallows`](internal/gallows) | The gallows drawing as plain polylines. |
+| [`internal/app`](internal/app) | The window: its state and actions (`app.go`), the rules it reads (`rules.go`), and the view, split by part of the window (`view.go`, `header.go`, `stage.go`, `drawer.go`, `summary.go`, `drawing.go`, `confetti.go`, `controls.go`, `motion.go`). |
+| [`assets`](assets) | The four bundled packs and the two mp3 cues, embedded in the binary. |
 
-The rules themselves, the guess budget per difficulty, hints, clues, word
-packs and scoring, are unchanged from hangman-gpui, whose README explains
-each of them in full.
+Only `internal/app` and `main.go` import mygo. The other packages are plain
+Go, so their tests run without a window. The view's tests run without one
+too, through mygo's `ui.Tester`, which clicks, types and advances a clock of
+its own, so the animations are tested part way as well as at rest.
+
+To look at the window without opening it, render states and moments part way
+through animations to PNGs:
+
+```sh
+HANGMAN_SHOTS=./shots go test ./internal/app -run 'TestShots|TestGallowsFrames'
+```
 
 ## Differences from hangman-gpui
 
+- **One stage instead of a board of panels**, as described above, with the
+  scoreboard as header chips, the stats as a drawer, and a summary screen at
+  the end of a match.
+- **A row of missed letters** under the gallows, which is where a wrong guess
+  flies.
+- **Play again** for a word list of your own, while the game stays open.
 - **The shortcuts use Command on macOS.** mygo's `ui.Cmd` is Ctrl elsewhere
   and Command on a Mac, where the gpui version used Ctrl everywhere.
 - **The window geometry is mygo's.** Its `StateKey` remembers the window, so
@@ -88,10 +132,9 @@ each of them in full.
 - **Sound is on by default**, through mygo's own audio package.
 - **A played key is a tile, not a button.** Clicking it again does nothing,
   where the gpui version's pressed button still took the click.
-- **Toolbar tooltips spell the shortcut out in text**, as `(Ctrl+H)`, rather
-  than as a key chip read from the keymap.
 
 ## Credits
 
 Original game © Zack Rauen ([zerebos](https://github.com/zerebos)), 2015.
-Toolbar icons after [Lucide](https://lucide.dev) (ISC).
+Icons after [Lucide](https://lucide.dev) (ISC). The confetti's colors are
+canvas-confetti's, by way of mygo's confetti example.
