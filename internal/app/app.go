@@ -82,6 +82,8 @@ type App struct {
 	// up on, so the gallows can draw the parts that giving up spent one
 	// after another, or -1 when the word on the board was not given up on.
 	gaveUpFrom int
+	// fade is where the switch between light and dark is (see theme).
+	fade themeState
 	// confirmReset is whether the Reset stats question is open.
 	confirmReset bool
 	// toast is a message for the view to show as a toast on its next build,

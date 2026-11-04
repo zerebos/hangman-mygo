@@ -284,3 +284,52 @@ func TestALetterTypedAsTheKeyboardReturnsLandsWithTheWord(t *testing.T) {
 		t.Errorf("the word was still filling in 700 ms after the guess (differs by %.1f)", d)
 	}
 }
+
+// Switching between light and dark fades the window through the colors in
+// between, and arrives exactly on the other theme. With less motion asked
+// for it switches at once.
+func TestTheThemeFadesBetweenLightAndDark(t *testing.T) {
+	// A point of bare background, left of the stage.
+	background := func(tt *ui.Tester) int {
+		return int(tt.Image().RGBAAt(4, 400).R)
+	}
+	a, tt, _ := tester(t, settings.Settings{})
+	dark := background(tt)
+	a.toggleTheme()
+	tt.Frame()
+	tt.Advance(themeFade / 2)
+	mid := background(tt)
+	tt.Advance(time.Second)
+	light := background(tt)
+	if !(dark < mid && mid < light) {
+		t.Errorf("background went %d, %d, %d: not a fade from dark to light", dark, mid, light)
+	}
+	if light != 255 {
+		t.Errorf("the light theme's background is %d, not white", light)
+	}
+
+	// The keys fade with the background rather than holding their color
+	// until it is over: a button eases its own colors, which kept
+	// restarting while the theme changed under it.
+	a, tt, _ = tester(t, settings.Settings{})
+	key, ok := tt.Find("Q")
+	if !ok {
+		t.Fatal("no Q key")
+	}
+	face := func() int { return int(tt.Image().RGBAAt(int(key.X+6), int(key.Y+6)).R) }
+	before := face()
+	a.toggleTheme()
+	tt.Frame()
+	tt.Advance(themeFade * 3 / 4)
+	if got := face(); got < before+60 {
+		t.Errorf("three quarters through the fade a key is at %d, from %d: it is not fading", got, before)
+	}
+
+	a, tt, _ = tester(t, settings.Settings{})
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+	a.toggleTheme()
+	tt.Frame()
+	if got := background(tt); got != 255 {
+		t.Errorf("with less motion the background is %d at once, not white", got)
+	}
+}
