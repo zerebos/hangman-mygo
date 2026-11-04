@@ -421,3 +421,40 @@ func TestAnEmptyBoxAsksForNothingImpossible(t *testing.T) {
 		t.Errorf("fit %+v, line %v", f, f.LineWidth(frameWidth))
 	}
 }
+
+// A rough stroke is the same every time for one seed, so it cannot shimmer
+// while it is drawn on, and it stays near the line it roughens.
+func TestARoughStrokeIsSteadyAndStaysNearItsLine(t *testing.T) {
+	line := Stroke{Points: []Point{{0, 0}, {100, 0}}, Width: 6}
+	a, b := line.Rough(7, 1.5), line.Rough(7, 1.5)
+	if len(a.Points) < 20 || len(a.Points) != len(b.Points) {
+		t.Fatalf("points %d and %d", len(a.Points), len(b.Points))
+	}
+	for i := range a.Points {
+		if a.Points[i] != b.Points[i] {
+			t.Fatal("the same seed drew two different strokes")
+		}
+		if y := a.Points[i].Y; y > 1.5 || y < -1.5 {
+			t.Errorf("point %d strays %v from the line", i, y)
+		}
+	}
+	if a.Points[0].X >= 0 || a.Points[len(a.Points)-1].X <= 100 {
+		t.Error("a rough stroke should run a little past both ends")
+	}
+	if c := line.Rough(8, 1.5); c.Points[5] == a.Points[5] {
+		t.Error("another seed drew the same wobble")
+	}
+}
+
+// A head is many short segments, each shorter than the rough step, and a
+// rough head must still go all the way round.
+func TestARoughHeadGoesAllTheWayRound(t *testing.T) {
+	head := Head.Stroke()
+	rough := head.Rough(3, 1.4)
+	if len(rough.Points) < len(head.Points) {
+		t.Fatalf("a head of %d points roughened into %d", len(head.Points), len(rough.Points))
+	}
+	if got, want := rough.Length(), head.Length(); got < want {
+		t.Errorf("rough head is %v long, the head %v", got, want)
+	}
+}

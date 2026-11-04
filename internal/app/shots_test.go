@@ -197,3 +197,39 @@ func TestGallowsFrames(t *testing.T) {
 		f.Close()
 	}
 }
+
+// TestSketchFrames renders the clean and the hand-drawn gallows side by side,
+// part way through a part and with a finished figure. Gated like TestShots.
+func TestSketchFrames(t *testing.T) {
+	dir := os.Getenv("HANGMAN_SHOTS")
+	if dir == "" {
+		t.Skip("set HANGMAN_SHOTS to a directory to write screenshots")
+	}
+	for _, theme := range []settings.Theme{settings.Dark, settings.Light} {
+		for _, sketch := range []bool{false, true} {
+			a := New(settings.Settings{Theme: theme, Sketch: sketch}, Options{})
+			a.game = game.WithSeed(game.Insane, 7)
+			tt := ui.NewTester(a.View, 1000, 800)
+			for range 4 {
+				tt.Key(0, ui.KeyA+ui.Key(wrongLetter(a.game)-'A'))
+				tt.Advance(3 * time.Second)
+			}
+			tt.Key(0, ui.KeyA+ui.Key(wrongLetter(a.game)-'A'))
+			tt.Advance(250 * time.Millisecond)
+			name := fmt.Sprintf("sketch-%v-%v", sketch, theme == settings.Light)
+			save := func(suffix string) {
+				f, err := os.Create(filepath.Join(dir, name+suffix+".png"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				_ = png.Encode(f, tt.Image())
+				f.Close()
+			}
+			save("-mid")
+			tt.Advance(3 * time.Second)
+			tt.Key(0, ui.KeyA+ui.Key(wrongLetter(a.game)-'A'))
+			tt.Advance(4 * time.Second)
+			save("-full")
+		}
+	}
+}

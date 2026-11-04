@@ -89,6 +89,10 @@ func (a *App) menu(c *ui.Context) {
 		if m.Item("Lifetime stats").Checked(a.showStats).Chosen() {
 			a.showStats = !a.showStats
 		}
+		if m.Item("Hand-drawn gallows").Checked(a.settings.Sketch).Chosen() {
+			a.settings.Sketch = !a.settings.Sketch
+			a.save()
+		}
 		theme := "Dark mode"
 		if a.settings.Theme == settings.Dark {
 			theme = "Light mode"

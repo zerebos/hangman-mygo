@@ -396,3 +396,68 @@ func arc(center Point, radius, from, to float32, segments int) []Point {
 func Pivot() Point {
 	return Point{beamX, beamY}
 }
+
+// roughStep is how far apart a rough stroke's points are, in design units.
+const roughStep = 4.0
+
+// Rough is the stroke as if drawn by hand: resampled every few units and
+// pushed off its line by a gentle wobble, run a little past both ends, and a
+// closed stroke drawn past its start instead of meeting it exactly. The
+// wobble comes from seed alone, so a stroke looks the same every frame and
+// does not shimmer while it is drawn on. wobble is how far it strays, in
+// design units.
+func (s Stroke) Rough(seed uint64, wobble float32) Stroke {
+	out := Stroke{Width: s.Width, Ink: s.Ink}
+	points := s.Points
+	if len(points) < 2 {
+		return out
+	}
+	if s.Closed {
+		// Round once and an eighth more, as a hand closing a circle does.
+		extra := len(points) / 8
+		points = append(append([]Point(nil), points...), points[:extra+1]...)
+	} else {
+		// Overshoot both ends by a couple of units.
+		points = append([]Point(nil), points...)
+		points[0] = extend(points[1], points[0], 2.5)
+		last := len(points) - 1
+		points[last] = extend(points[last-1], points[last], 2.5)
+	}
+
+	// Two slow waves of different lengths, phased by the seed.
+	phase1 := float64(seed%997) * 0.37
+	phase2 := float64(seed%331) * 1.13
+	offset := func(at float32) float32 {
+		return wobble * float32(0.65*math.Sin(float64(at)/23+phase1)+0.35*math.Sin(float64(at)/7.5+phase2))
+	}
+	out.Points = append(out.Points, points[0])
+	walked := float32(0)
+	for i := 1; i < len(points); i++ {
+		from, to := points[i-1], points[i]
+		step := from.Distance(to)
+		if step == 0 {
+			continue
+		}
+		nx, ny := -(to.Y-from.Y)/step, (to.X-from.X)/step
+		// Each segment adds the points after its start, its end included,
+		// so a segment shorter than the step still adds its end.
+		n := max(int(step/roughStep), 1)
+		for k := 1; k <= n; k++ {
+			t := float32(k) / float32(n)
+			p := from.Lerp(to, t)
+			off := offset(walked + step*t)
+			out.Points = append(out.Points, Point{p.X + nx*off, p.Y + ny*off})
+		}
+		walked += step
+	}
+	return out
+}
+
+// extend moves to further from from by d, along the line between them.
+func extend(from, to Point, d float32) Point {
+	length := from.Distance(to)
+	if length == 0 {
+		return to
+	}
+	return Point{to.X + (to.X-from.X)/length*d, to.Y + (to.Y-from.Y)/length*d}
+}

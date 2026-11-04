@@ -35,6 +35,9 @@ const (
 // Two things move. The newest part draws itself on behind a pen tip, and the
 // rope and the figure swing from the beam as the part lands, harder on the
 // guess that loses the word, settling as a pendulum does.
+//
+// With the hand-drawn setting on, every line is roughened as a marker draws
+// it: wobbling, tapered and run past its ends.
 func (a *App) drawGallows(c *ui.Context, p palette) {
 	wrong, budget := a.game.WrongGuesses(), a.game.GuessBudget()
 	lost := budget > 0 && wrong >= budget
@@ -63,6 +66,40 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 		swing = angle * (1 - t) * (1 - t) * float32(math.Sin(float64(t)*swayCycles*2*math.Pi))
 	}
 	settled := gallows.PartsDrawn(budget, max(wrong-1, 0))
+	drawn := gallows.PartsDrawn(budget, wrong)
+	sketch := a.settings.Sketch
+
+	// The figure is built whole and cut to the newest part's progress only
+	// after it is roughened, so a hand-drawn line keeps its wobble while it
+	// is drawn on instead of shimmering. The strokes from settled on are the
+	// newest part's, and the face's when it arrives with that part.
+	parts := gallows.FigureStrokes(budget, wrong, 1)
+	fresh := len(parts)
+	if drawn != settled {
+		fresh = min(settled, len(parts))
+	}
+	look := func(s gallows.Stroke, seed int) gallows.Stroke {
+		if sketch {
+			return s.Rough(uint64(seed)*7919+11, 1.4)
+		}
+		return s
+	}
+	var still, hanging, drawing []gallows.Stroke
+	for i, s := range gallows.FrameStrokes() {
+		if s.Ink == gallows.Rope {
+			hanging = append(hanging, look(s, i))
+		} else {
+			still = append(still, look(s, i))
+		}
+	}
+	for i, s := range parts {
+		s = look(s, 100+i)
+		if i >= fresh {
+			s = s.Partial(progress)
+			drawing = append(drawing, s)
+		}
+		hanging = append(hanging, s)
+	}
 
 	box.Draw(func(pt *ui.Painter, r ui.Rect) {
 		fit := gallows.Fit(r.W, r.H)
@@ -73,12 +110,9 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 			m := fit.Map(q)
 			return r.X + m.X, r.Y + m.Y
 		}
-		stroke := func(s gallows.Stroke) {
-			if len(s.Points) < 2 {
-				return
-			}
+		path := func(points []gallows.Point, closed bool) *ui.Path {
 			var path ui.Path
-			for i, q := range s.Points {
+			for i, q := range points {
 				x, y := at(q)
 				if i == 0 {
 					path.MoveTo(x, y)
@@ -86,23 +120,34 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 					path.LineTo(x, y)
 				}
 			}
-			if s.Closed {
+			if closed {
 				path.Close()
 			}
-			pt.StrokePath(&path, fit.LineWidth(s.Width), colors[s.Ink])
+			return &path
 		}
-
-		var hanging []gallows.Stroke
-		for _, s := range gallows.FrameStrokes() {
-			if s.Ink == gallows.Rope {
-				hanging = append(hanging, s)
-			} else {
-				stroke(s)
+		stroke := func(s gallows.Stroke) {
+			if len(s.Points) < 2 {
+				return
 			}
+			width, color := fit.LineWidth(s.Width), colors[s.Ink]
+			if !sketch {
+				pt.StrokePath(path(s.Points, s.Closed), width, color)
+				return
+			}
+			// A marker's line: thinner toward both ends, segment by segment,
+			// with a faint second pass alongside it.
+			n := len(s.Points)
+			for j := 1; j < n; j++ {
+				u := float32(j) / float32(n)
+				taper := 0.55 + 0.45*min(1, u/0.15, (1-u)/0.15)
+				pt.StrokePath(path(s.Points[j-1:j+1], false), width*taper, color)
+			}
+			pt.StrokePath(path(s.Points, false), width*0.35, color.Alpha(0.35))
 		}
-		figureStrokes := gallows.FigureStrokes(budget, wrong, progress)
-		hanging = append(hanging, figureStrokes...)
 
+		for _, s := range still {
+			stroke(s)
+		}
 		px, py := at(gallows.Pivot())
 		pt.Transform(ui.Rotation(swing), px, py, func() {
 			for _, s := range hanging {
@@ -110,7 +155,7 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 			}
 			// The pen tip rides the end of each stroke still being drawn.
 			if progress < 1 {
-				for _, s := range figureStrokes[min(settled, len(figureStrokes)):] {
+				for _, s := range drawing {
 					if len(s.Points) == 0 {
 						continue
 					}
