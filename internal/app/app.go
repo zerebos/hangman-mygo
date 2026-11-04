@@ -149,27 +149,18 @@ func (a *App) guess(letter rune) {
 	}
 }
 
-// hint buys a letter with a wrong guess. Everything after the call is the
-// guess path, because to the rest of the view a hint is a guess.
+// hint buys a letter with a wrong guess. To the rest of the view a hint is a
+// guess, so the letter flies in and the gallows draws a part as for one. A
+// hint never ends a word: the rules refuse the last guess and the last
+// letter.
 func (a *App) hint() {
 	out := a.game.Hint()
 	if out.Result != game.Revealed {
 		return
 	}
 	a.lastGuess = out.Letter
-	earned := a.record(out.Word, out.Match)
 	a.play(sounds.Wood.Hint(a.rightStep(), a.wrongStep()), 0)
-	a.playWordEnd(out.Word)
-	switch out.Word {
-	case game.Won:
-		a.notice = good(gameWon + " +" + strconv.FormatUint(uint64(earned), 10))
-	case game.Lost:
-		// Unreachable, because a hint refuses at one guess left, but the
-		// rules are the game's to keep.
-		a.notice = bad(gameLost)
-	default:
-		a.notice = good(hintGiven + " " + string(out.Letter) + ".")
-	}
+	a.notice = good(hintGiven + " " + string(out.Letter) + ".")
 	a.persist()
 }
 

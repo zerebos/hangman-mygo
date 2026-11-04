@@ -1077,45 +1077,36 @@ func TestAHintIsRefusedWhenTheWordIsFullyRevealed(t *testing.T) {
 	}
 }
 
-func TestAHintThatCompletesTheWordWinsIt(t *testing.T) {
+// The letter that finishes a word is the player's to find: with one letter
+// left, a hint is refused and changes nothing.
+func TestAHintNeverRevealsTheLastLetter(t *testing.T) {
 	g := gameWithWord(t, "CAT")
 	g.Guess('C')
 	g.Guess('A')
-	if g.Display() != "CA_" {
-		t.Fatalf("display %q", g.Display())
+	if g.CanHint() {
+		t.Error("a hint is offered for the last letter")
 	}
-	out := g.Hint()
-	// The single-word list is exhausted, so the match ends with it.
-	if out != (HintOutcome{Result: Revealed, Letter: 'T', Word: Won, Match: MatchWon}) {
+	if out := g.Hint(); out != (HintOutcome{Result: LastLetter}) {
 		t.Errorf("hint %+v", out)
 	}
-	if !g.IsWon() || g.WordsWon() != 1 || g.WordsLost() != 0 {
-		t.Errorf("won %v, %d-%d", g.IsWon(), g.WordsWon(), g.WordsLost())
-	}
-	// It still cost a guess, so the win scores one guess less.
-	if g.WrongGuesses() != 1 || g.RemainingGuesses() != g.GuessBudget()-1 {
-		t.Errorf("wrong %d, left %d", g.WrongGuesses(), g.RemainingGuesses())
+	if g.Display() != "CA_" || g.WrongGuesses() != 0 || g.IsWordOver() {
+		t.Errorf("display %q, wrong %d, over %v", g.Display(), g.WrongGuesses(), g.IsWordOver())
 	}
 }
 
-// Down to two guesses, the hint spends one and must still win rather than
-// lose, whichever check runs first.
-func TestAWinningHintWinsEvenWithTheBudgetNearlyGone(t *testing.T) {
+// With two letters left a hint reveals one of them, and then refuses the
+// other: no number of hints in a row can finish a word.
+func TestHintsInARowStopShortOfTheWord(t *testing.T) {
 	g := gameWithWord(t, "CAT")
 	g.Guess('C')
-	g.Guess('A')
-	for _, r := range wrongLetters(g)[:g.GuessBudget()-2] {
-		g.Guess(r)
+	if out := g.Hint(); out.Result != Revealed || g.IsWordOver() {
+		t.Fatalf("hint %+v", out)
 	}
-	if g.RemainingGuesses() != 2 {
-		t.Fatalf("left %d", g.RemainingGuesses())
+	if out := g.Hint(); out.Result != LastLetter {
+		t.Errorf("second hint %+v", out)
 	}
-	out := g.Hint()
-	if out.Result != Revealed || out.Letter != 'T' || out.Word != Won {
-		t.Errorf("hint %+v", out)
-	}
-	if !g.IsWon() || g.RemainingGuesses() != 1 {
-		t.Errorf("won %v, left %d", g.IsWon(), g.RemainingGuesses())
+	if g.IsWordOver() {
+		t.Error("hints finished the word")
 	}
 }
 

@@ -26,12 +26,13 @@ const (
 	customListSubtitle = "Custom word list"
 	hintGiven          = "That cost you a guess:"
 
-	hintTooltip          = "Reveal a letter — costs one wrong guess"
-	hintTooltipLastGuess = "No hint: it would cost the last guess you have"
-	hintTooltipOver      = "No hint: this word is already finished"
-	clueTooltip          = "Show what the word means — costs nothing"
-	clueTooltipNone      = "No clue: this word list does not carry one"
-	clueTooltipShown     = "The clue is already on screen"
+	hintTooltip           = "Reveal a letter — costs one wrong guess"
+	hintTooltipLastGuess  = "No hint: it would cost the last guess you have"
+	hintTooltipLastLetter = "No hint: the last letter is yours to find"
+	hintTooltipOver       = "No hint: this word is already finished"
+	clueTooltip           = "Show what the word means — costs nothing"
+	clueTooltipNone       = "No clue: this word list does not carry one"
+	clueTooltipShown      = "The clue is already on screen"
 
 	resetTitle   = "Reset lifetime stats?"
 	resetOK      = "Reset"
@@ -117,13 +118,15 @@ func clueTooltipFor(g *game.Game, clueShown bool) string {
 // hintTooltipFor says what the Hint button will do, or why it will not. The
 // reason is why the button stays on screen greyed out instead of vanishing.
 func hintTooltipFor(g *game.Game) string {
-	switch {
-	case g.CanHint():
+	switch g.HintRefusal() {
+	case game.Revealed:
 		return hintTooltip
-	case g.IsWordOver():
-		return hintTooltipOver
+	case game.NoGuessToSpare:
+		return hintTooltipLastGuess
+	case game.LastLetter:
+		return hintTooltipLastLetter
 	}
-	return hintTooltipLastGuess
+	return hintTooltipOver
 }
 
 // shortcut is one entry of the keyboard legend.

@@ -416,3 +416,16 @@ func mustPack(t *testing.T, text string) words.Pack {
 	}
 	return p
 }
+
+func TestTheHintTooltipSaysTheLastLetterIsYours(t *testing.T) {
+	g := mustWords(t, "CAT", "DOG")
+	for _, r := range g.Word()[:2] {
+		g.Guess(rune(r))
+	}
+	if got := hintTooltipFor(g); got != hintTooltipLastLetter {
+		t.Errorf("tooltip %q with one letter left", got)
+	}
+	if live := legendOf(g, false)[shortcutHint]; live {
+		t.Error("the legend offers a hint for the last letter")
+	}
+}

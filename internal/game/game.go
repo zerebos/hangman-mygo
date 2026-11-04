@@ -166,19 +166,21 @@ const (
 	// that spent the last guess would reveal a letter and lose the word in
 	// the same breath, which is a trap rather than a choice.
 	NoGuessToSpare
+	// LastLetter means only one letter of the word is still hidden, and the
+	// letter that finishes a word is always the player's to find, so a word
+	// is never won by a hint.
+	LastLetter
 	// HintIgnored means the word or the match was over, or nothing was left
 	// hidden.
 	HintIgnored
 )
 
-// HintOutcome is everything one call to Hint changed. A hint can only end a
-// word by winning it.
+// HintOutcome is what one call to Hint did. A hint never ends a word, so
+// there is no word or match result to report.
 type HintOutcome struct {
 	Result HintResult
 	// Letter is the letter revealed, when Result is Revealed.
 	Letter rune
-	Word   Result
-	Match  MatchOutcome
 }
 
 // Cell is one character of the current word, ready to be laid out.
@@ -580,31 +582,34 @@ func (g *Game) Guess(letter rune) GuessOutcome {
 // gallows and the score all charge for it without knowing hints exist. The
 // letter is drawn from the game's own random source, so a seeded game hints
 // reproducibly.
+//
+// A hint can neither win nor lose a word. It is refused with one guess left,
+// so it never spends the last, and with one letter left, so the letter that
+// finishes the word is always one the player found.
 func (g *Game) Hint() HintOutcome {
-	if g.IsWordOver() {
-		return HintOutcome{Result: HintIgnored}
-	}
-	// One guess left is refused, not zero: see NoGuessToSpare.
-	if g.RemainingGuesses() <= 1 {
-		return HintOutcome{Result: NoGuessToSpare}
+	if refusal := g.HintRefusal(); refusal != Revealed {
+		return HintOutcome{Result: refusal}
 	}
 	hidden := g.hiddenLetters()
-	if len(hidden) == 0 {
-		return HintOutcome{Result: HintIgnored}
-	}
-
 	letter := hidden[g.rng.IntN(len(hidden))]
 	g.guessed = g.guessed.With(letter)
 	g.wrong++
+	return HintOutcome{Result: Revealed, Letter: letter}
+}
 
-	// Only the win is checked: at least two guesses were left before the
-	// charge, so the budget cannot run out here.
-	out := HintOutcome{Result: Revealed, Letter: letter}
-	if g.isWordComplete() {
-		ended := g.endWord(Won, Correct)
-		out.Word, out.Match = ended.Word, ended.Match
+// HintRefusal is why Hint would refuse right now, or Revealed when it would
+// reveal a letter. The UI greys its Hint button out on it and says which.
+func (g *Game) HintRefusal() HintResult {
+	switch hidden := len(g.hiddenLetters()); {
+	case g.IsWordOver() || hidden == 0:
+		return HintIgnored
+	// One guess left is refused, not zero: see NoGuessToSpare.
+	case g.RemainingGuesses() <= 1:
+		return NoGuessToSpare
+	case hidden == 1:
+		return LastLetter
 	}
-	return out
+	return Revealed
 }
 
 // GiveUp loses the current word at once, and returns the match's outcome if
@@ -777,7 +782,7 @@ func (g *Game) RemainingGuesses() int { return max(g.budget-g.wrong, 0) }
 // CanHint reports whether Hint would reveal something. A hint is unavailable
 // one guess before the last, not on it.
 func (g *Game) CanHint() bool {
-	return !g.IsWordOver() && g.RemainingGuesses() > 1 && len(g.hiddenLetters()) > 0
+	return g.HintRefusal() == Revealed
 }
 
 // IsWordOver reports whether the current word has been won or lost.
