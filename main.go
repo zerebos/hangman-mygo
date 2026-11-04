@@ -4,43 +4,32 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 	"runtime"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/audio"
-	_ "github.com/egoist/mygo/audio/mp3"
 	"github.com/egoist/mygo/ui"
 
-	"github.com/zerebos/hangman-mygo/assets"
 	"github.com/zerebos/hangman-mygo/internal/app"
 	"github.com/zerebos/hangman-mygo/internal/settings"
+	"github.com/zerebos/hangman-mygo/internal/sounds"
 )
 
-// cues plays the original's win and loss sounds. A machine with no usable
-// audio still plays the game, silently.
-type cues struct {
-	win, loss *audio.Sound
-}
+// speaker plays the game's cues through mygo's audio, which mixes them on
+// its own goroutine. A machine with no usable audio still plays the game,
+// silently.
+type speaker struct{}
 
-func loadCues() app.Cues {
-	win, err := audio.DecodeSound(assets.WinMP3)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "hangman: could not decode a sound cue:", err)
-		return nil
+func (speaker) Play(samples []float32, delay time.Duration) {
+	sound := audio.NewSound(sounds.Rate, 1, samples)
+	if delay <= 0 {
+		sound.Play()
+		return
 	}
-	loss, err := audio.DecodeSound(assets.LossMP3)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "hangman: could not decode a sound cue:", err)
-		return nil
-	}
-	return cues{win, loss}
+	time.AfterFunc(delay, func() { sound.Play() })
 }
-
-func (c cues) PlayWin()  { c.win.Play() }
-func (c cues) PlayLoss() { c.loss.Play() }
 
 func main() {
 	path := settings.Path()
@@ -68,7 +57,7 @@ func main() {
 
 	game := app.New(settings.Load(path), app.Options{
 		SettingsPath: path,
-		Cues:         loadCues(),
+		Speaker:      speaker{},
 		PickFile:     pickFile,
 	})
 

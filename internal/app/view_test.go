@@ -3,6 +3,7 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/zerebos/hangman-mygo/internal/game"
 	"github.com/zerebos/hangman-mygo/internal/settings"
+	"github.com/zerebos/hangman-mygo/internal/sounds"
 	"github.com/zerebos/hangman-mygo/internal/stats"
 )
 
@@ -22,10 +24,20 @@ func tester(t *testing.T, s settings.Settings) (*App, *ui.Tester, string) {
 	return a, ui.NewTester(a.View, 1000, 800), path
 }
 
-type recorder struct{ wins, losses int }
+// recorder is a speaker that keeps what it was asked to play.
+type recorder struct{ played [][]float32 }
 
-func (r *recorder) PlayWin()  { r.wins++ }
-func (r *recorder) PlayLoss() { r.losses++ }
+func (r *recorder) Play(samples []float32, _ time.Duration) { r.played = append(r.played, samples) }
+
+// heard reports whether the recorder played cue.
+func (r *recorder) heard(cue []float32) bool {
+	for _, s := range r.played {
+		if reflect.DeepEqual(s, cue) {
+			return true
+		}
+	}
+	return false
+}
 
 func TestClickingAKeyGuessesItsLetter(t *testing.T) {
 	a, tt, _ := tester(t, settings.Settings{})
@@ -146,15 +158,15 @@ func TestSwitchingMidWordChargesTheWordAndSaysSo(t *testing.T) {
 
 func TestWinningPlaysTheWinCueAndScores(t *testing.T) {
 	cues := &recorder{}
-	a := New(settings.Settings{}, Options{Cues: cues})
+	a := New(settings.Settings{}, Options{Speaker: cues})
 	tt := ui.NewTester(a.View, 1000, 800)
 	for _, r := range a.game.Word() {
 		if 'A' <= r && r <= 'Z' && !a.game.Guessed().Has(r) {
 			tt.Key(0, ui.KeyA+ui.Key(r-'A'))
 		}
 	}
-	if !a.game.IsWon() || cues.wins != 1 || a.session.MatchPoints() == 0 {
-		t.Errorf("won %v, cues %+v, points %d", a.game.IsWon(), cues, a.session.MatchPoints())
+	if !a.game.IsWon() || !cues.heard(sounds.Wood.WordWon()) || a.session.MatchPoints() == 0 {
+		t.Errorf("won %v, heard the win %v, points %d", a.game.IsWon(), cues.heard(sounds.Wood.WordWon()), a.session.MatchPoints())
 	}
 	// The result card rises once the keyboard has folded away.
 	tt.Advance(time.Second)
@@ -329,5 +341,57 @@ func TestTheHeadersWindowControlsWorkTheWindow(t *testing.T) {
 	}
 	if w.minimized != 1 || w.maximized || w.closed != 1 {
 		t.Errorf("window %+v", *w)
+	}
+}
+
+// Each guess plays its cue: a right letter one step further up the scale
+// than the last, a wrong one the knock, and the word's end its phrase. With
+// the sound off, nothing plays.
+func TestEachGuessPlaysItsCue(t *testing.T) {
+	cues := &recorder{}
+	a := New(settings.Settings{}, Options{Speaker: cues})
+	g, err := game.FromWordsWithSeed(1, "ABC")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.game = g
+	tt := ui.NewTester(a.View, 1000, 800)
+	tt.Key(0, ui.KeyA)
+	tt.Key(0, ui.KeyB)
+	tt.Key(0, ui.KeyZ)
+	for _, want := range []struct {
+		name string
+		cue  []float32
+	}{
+		{"first right", sounds.Wood.Right(0, 1)},
+		{"second right", sounds.Wood.Right(1, 1)},
+		{"wrong", sounds.Wood.Wrong()},
+	} {
+		if !cues.heard(want.cue) {
+			t.Errorf("did not hear the %s", want.name)
+		}
+	}
+	tt.Key(0, ui.KeyC)
+	if !cues.heard(sounds.Wood.Right(2, 1)) || !cues.heard(sounds.Wood.WordWon()) {
+		t.Error("the last letter did not play its pluck and the win")
+	}
+	tt.Key(0, ui.KeyEnter)
+	if !cues.heard(sounds.Wood.MatchWon()) {
+		t.Error("the won match's summary played no phrase")
+	}
+
+	before := len(cues.played)
+	a.toggleSound()
+	fresh, err := game.FromWordsWithSeed(2, "AB")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.game = fresh
+	a.freshWord(nil)
+	tt.Frame()
+	tt.Key(0, ui.KeyA)
+	tt.Key(0, ui.KeyZ)
+	if len(cues.played) != before {
+		t.Errorf("%d cues played with the sound off", len(cues.played)-before)
 	}
 }

@@ -293,3 +293,19 @@ func TestASettingsFileWrittenBeforeThisExistedSimplyHasNoMatch(t *testing.T) {
 		t.Errorf("match %+v", m)
 	}
 }
+
+// Sound is on unless the file says it is off, and a value of the wrong shape
+// costs only itself.
+func TestTheSoundSwitchIsRemembered(t *testing.T) {
+	if (Settings{}).Mute {
+		t.Fatal("sound is off by default")
+	}
+	path := filepath.Join(t.TempDir(), "settings.json")
+	Settings{Theme: Light, Mute: true}.Save(path)
+	if back := Load(path); !back.Mute || back.Theme != Light {
+		t.Errorf("loaded %+v", back)
+	}
+	if s := Parse([]byte(`{"theme": "light", "mute": "yes"}`)); s.Mute || s.Theme != Light {
+		t.Errorf("parsed %+v", s)
+	}
+}

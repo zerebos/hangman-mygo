@@ -89,6 +89,9 @@ func (a *App) menu(c *ui.Context) {
 		if m.Item("Lifetime stats").Checked(a.showStats).Chosen() {
 			a.showStats = !a.showStats
 		}
+		if m.Item("Sound effects").Checked(!a.settings.Mute).Chosen() {
+			a.toggleSound()
+		}
 		theme := "Dark mode"
 		if a.settings.Theme == settings.Dark {
 			theme = "Light mode"

@@ -8,7 +8,7 @@ import (
 // cues is every cue of every palette, by name, as the game asks for them.
 func cues() map[string][]float32 {
 	out := map[string][]float32{}
-	for _, p := range []Palette{Wood, Paper} {
+	for _, p := range []Palette{Wood} {
 		for name, s := range map[string][]float32{
 			"right":       p.Right(0, 1),
 			"right high":  p.Right(14, 1),
@@ -79,7 +79,7 @@ func TestTheRightLetterClimbs(t *testing.T) {
 
 // Plucking a letter several times takes longer, a beat per extra cell.
 func TestALetterInSeveralCellsPlucksEachOfThem(t *testing.T) {
-	for _, p := range []Palette{Wood, Paper} {
+	for _, p := range []Palette{Wood} {
 		one, three := len(p.Right(0, 1)), len(p.Right(0, 3))
 		if three <= one {
 			t.Errorf("%s: three plucks %d samples, one %d", p.Name, three, one)

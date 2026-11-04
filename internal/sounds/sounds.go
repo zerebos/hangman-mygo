@@ -2,11 +2,10 @@
 // device and no mygo in it, so the cues can be tested like any other code.
 // The game hands the samples to mygo's audio package to play.
 //
-// There are two palettes. Wood is a soft wooden pluck, like a marimba bar,
-// on a pentatonic scale, so any notes played together or in a row agree; a
-// wrong guess is a muted knock under a short marker scratch. Paper is a
-// pencil on paper: taps, check marks, strokes and crumpling, with no notes
-// at all.
+// The palette, Wood, is a soft wooden pluck, like a marimba bar, on a
+// pentatonic scale, so any notes played together or in a row agree; a wrong
+// guess is a muted knock under a short marker scratch. A pencil-and-paper
+// palette was tried beside it and lost; it is in commit 3dcc085.
 package sounds
 
 import (

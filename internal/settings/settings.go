@@ -168,6 +168,9 @@ type Settings struct {
 	Stats stats.Stats `json:"stats"`
 	// InFlight is the match still being played when the game closed, or nil.
 	InFlight *SavedMatch `json:"in_flight"`
+	// Mute turns the sound effects off. Sound is on unless this says
+	// otherwise, so it is the zero value of a file that never mentions it.
+	Mute bool `json:"mute,omitempty"`
 }
 
 // Path is where the file lives, or "" on a system with no config directory.
@@ -217,6 +220,9 @@ func Parse(data []byte) Settings {
 		if json.Unmarshal(raw, &st) == nil {
 			s.Stats = st
 		}
+	}
+	if raw, ok := keys["mute"]; ok {
+		_ = json.Unmarshal(raw, &s.Mute)
 	}
 	if raw, ok := keys["in_flight"]; ok {
 		var m SavedMatch

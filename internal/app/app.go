@@ -5,24 +5,25 @@ package app
 import (
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/zerebos/hangman-mygo/internal/game"
 	"github.com/zerebos/hangman-mygo/internal/settings"
+	"github.com/zerebos/hangman-mygo/internal/sounds"
 	"github.com/zerebos/hangman-mygo/internal/stats"
 	"github.com/zerebos/hangman-mygo/internal/words"
 )
 
-// Cues plays the original's two sound cues. Giving up is silent, as it was
-// in the original.
-type Cues interface {
-	PlayWin()
-	PlayLoss()
+// Speaker plays a cue's samples (mono, at sounds.Rate) after a delay. It must
+// return at once, because the view calls it from a build.
+type Speaker interface {
+	Play(samples []float32, delay time.Duration)
 }
 
-type silent struct{}
-
-func (silent) PlayWin()  {}
-func (silent) PlayLoss() {}
+// wordEndDelay is how long after a word's last letter its win or loss
+// phrase comes in, so the letter's own sound is heard first.
+const wordEndDelay = 160 * time.Millisecond
 
 // Options is what the window needs from outside: where the settings live,
 // how to play sounds, and how to ask the user for a file.
@@ -30,8 +31,8 @@ type Options struct {
 	// SettingsPath is where settings.json is written. Empty writes nothing,
 	// which is what tests use.
 	SettingsPath string
-	// Cues plays the win and loss sounds; nil is silent.
-	Cues Cues
+	// Speaker plays the sound cues; nil is silent.
+	Speaker Speaker
 	// PickFile asks the user for a word list and calls done with its
 	// contents on the main thread, or never when the user cancels. Nil
 	// leaves Open word list doing nothing.
@@ -88,9 +89,6 @@ type App struct {
 // New builds the window's state from the settings the last run left behind,
 // picking the match up where it was if it still describes a playable one.
 func New(s settings.Settings, opts Options) *App {
-	if opts.Cues == nil {
-		opts.Cues = silent{}
-	}
 	g, session := resumeOrStart(&s)
 	// The mirror now says what is actually on the board, so a saved match
 	// that was refused is not written back out by the next theme toggle.
@@ -124,14 +122,20 @@ func (a *App) guess(letter rune) {
 	}
 	earned := a.record(out.Word, out.Match)
 
+	switch out.Result {
+	case game.Correct:
+		a.play(sounds.Wood.Right(a.rightStep(), occurrences(a.game.Word(), a.lastGuess)), 0)
+	case game.Wrong:
+		a.play(sounds.Wood.Wrong(), 0)
+	}
+	a.playWordEnd(out.Word)
+
 	switch {
 	case out.Result == game.Invalid:
 		a.notice = bad(invalidGuess)
 	case out.Word == game.Won:
-		a.opts.Cues.PlayWin()
 		a.notice = good(gameWon + " +" + strconv.FormatUint(uint64(earned), 10))
 	case out.Word == game.Lost:
-		a.opts.Cues.PlayLoss()
 		a.notice = bad(gameLost)
 	default:
 		// The original cleared the line on any ordinary guess.
@@ -151,19 +155,50 @@ func (a *App) hint() {
 	}
 	a.lastGuess = out.Letter
 	earned := a.record(out.Word, out.Match)
+	a.play(sounds.Wood.Hint(a.rightStep(), occurrences(a.game.Word(), out.Letter)), 0)
+	a.playWordEnd(out.Word)
 	switch out.Word {
 	case game.Won:
-		a.opts.Cues.PlayWin()
 		a.notice = good(gameWon + " +" + strconv.FormatUint(uint64(earned), 10))
 	case game.Lost:
 		// Unreachable, because a hint refuses at one guess left, but the
 		// rules are the game's to keep.
-		a.opts.Cues.PlayLoss()
 		a.notice = bad(gameLost)
 	default:
 		a.notice = good(hintGiven + " " + string(out.Letter) + ".")
 	}
 	a.persist()
+}
+
+// play plays a cue, unless the sound is off or there is nothing to play it.
+func (a *App) play(samples []float32, delay time.Duration) {
+	if a.opts.Speaker != nil && !a.settings.Mute {
+		a.opts.Speaker.Play(samples, delay)
+	}
+}
+
+// playWordEnd plays a word's win or loss phrase just after the sound of the
+// letter that ended it.
+func (a *App) playWordEnd(word game.Result) {
+	switch word {
+	case game.Won:
+		a.play(sounds.Wood.WordWon(), wordEndDelay)
+	case game.Lost:
+		a.play(sounds.Wood.WordLost(), wordEndDelay)
+	}
+}
+
+// rightStep is which step up the scale a right letter plays: how many right
+// letters the word has had, this one included, counted from 0. So a word
+// being solved is heard climbing.
+func (a *App) rightStep() int {
+	n := 0
+	for _, r := range a.game.Guessed().String() {
+		if strings.ContainsRune(a.game.Word(), r) {
+			n++
+		}
+	}
+	return max(n-1, 0)
 }
 
 // showClue puts the clue on screen. Nothing is recorded or charged.
@@ -217,6 +252,9 @@ func (a *App) showSummary() {
 	a.summaryShown = true
 	if a.game.MatchOutcome() == game.MatchWon {
 		a.confetti = newConfetti()
+		a.play(sounds.Wood.MatchWon(), 0)
+	} else {
+		a.play(sounds.Wood.MatchEnded(), 0)
 	}
 }
 
@@ -302,6 +340,11 @@ func (a *App) loadWordList(contents string, err error) {
 func (a *App) resetStats() {
 	a.session.ResetStats()
 	a.persist()
+}
+
+func (a *App) toggleSound() {
+	a.settings.Mute = !a.settings.Mute
+	a.save()
 }
 
 func (a *App) toggleTheme() {
