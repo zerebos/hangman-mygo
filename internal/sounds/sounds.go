@@ -217,11 +217,15 @@ func woodWrong(step int) []float32 {
 // the player knows, in an order nothing else plays.
 func woodHint(rightStep, wrongStep int) []float32 {
 	b := newBuffer(1.05)
+	// The miss is already at its own level (0.45), so it is brought back up
+	// to full here. The pluck after it is held a little under, because a low
+	// note sounds quieter than a high one at the same level, and the cost
+	// should be heard as clearly as the gift.
 	paid := woodWrong(wrongStep)
 	for i, v := range paid {
-		b[i] += float64(v) * 0.8
+		b[i] += float64(v) / 0.45
 	}
-	b.mix(pluck(freq(scaleNote(rightStep)), 0.9, 1), 0.13, 0.55/0.45)
+	b.mix(pluck(freq(scaleNote(rightStep)), 0.9, 1), 0.13, 0.5)
 	return b.samples(0.55)
 }
 
