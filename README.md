@@ -155,6 +155,11 @@ HANGMAN_SHOTS=./shots go test ./internal/app -run 'TestShots|TestGallowsFrames'
 - **A row of missed letters** under the gallows, which is where a wrong guess
   flies.
 - **Play again** for a word list of your own, while the game stays open.
+- **A hint never gives the last letter away.** It is refused with one letter
+  left, as it is with one guess left, so every word is finished by a letter
+  you found. In hangman-gpui a hint could win the word.
+- **Giving up spends the rest of the guess budget**, so it is lost like any
+  other word, gallows and all.
 - **The shortcuts use Command on macOS.** mygo's `ui.Cmd` is Ctrl elsewhere
   and Command on a Mac, where the gpui version used Ctrl everywhere.
 - **The window geometry is mygo's.** Its `StateKey` remembers the window, so
