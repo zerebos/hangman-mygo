@@ -13,13 +13,14 @@ import (
 	"math/rand/v2"
 )
 
-// Palette is one set of the game's cues. step counts the right letters of
-// the word so far, from 0, and count is how many cells the letter fills.
+// Palette is one set of the game's cues. Right and Hint play one note for
+// each cell the letter fills, at the steps up the scale they are given (see
+// Steps).
 type Palette struct {
 	Name       string
-	Right      func(step, count int) []float32
+	Right      func(steps ...int) []float32
 	Wrong      func() []float32
-	Hint       func(step, count int) []float32
+	Hint       func(steps ...int) []float32
 	WordWon    func() []float32
 	WordLost   func() []float32
 	MatchWon   func() []float32
@@ -48,6 +49,28 @@ const root = 72
 // freq is the frequency of a MIDI note.
 func freq(note int) float64 {
 	return 440 * math.Pow(2, float64(note-69)/12)
+}
+
+// Top is the highest step a word climbs to: two octaves of the pentatonic
+// scale.
+const Top = 2*len(pentatonic) - 1
+
+// Steps is the notes a guess plays: one for each of the count cells it
+// filled, after filled cells of the word's cells were already showing, spread
+// over the scale so the word's last cell always lands on Top. A word being
+// solved is heard climbing to its end, and a letter in two cells plays a
+// little run rather than one note twice, which only blurs.
+func Steps(filled, count, cells int) []int {
+	steps := make([]int, max(count, 1))
+	for n := range steps {
+		ordinal := filled + n
+		if cells <= 1 {
+			steps[n] = Top
+			continue
+		}
+		steps[n] = int(math.Round(float64(ordinal) * float64(Top) / float64(cells-1)))
+	}
+	return steps
 }
 
 // scaleNote is the step-th note of the pentatonic scale above root, climbing
@@ -146,10 +169,12 @@ func knock(f float64) buffer {
 	phase, lp := 0.0, 0.0
 	for i := range b {
 		t := float64(i) / Rate
-		pitch := f * (1 + 0.6*math.Exp(-t/0.02))
+		// A small pitch drop and a 6 ms attack: a felt mallet rather than a
+		// thump, so a sound heard on every miss does not grate.
+		pitch := f * (1 + 0.25*math.Exp(-t/0.025))
 		phase += 2 * math.Pi * pitch / Rate
-		lp += 0.04 * (rng.Float64()*2 - 1 - lp)
-		b[i] = (math.Sin(phase) + 2*lp) * math.Exp(-t/0.06) * min(t/0.002, 1)
+		lp += 0.02 * (rng.Float64()*2 - 1 - lp)
+		b[i] = (math.Sin(phase) + 0.8*lp) * math.Exp(-t/0.07) * min(t/0.006, 1)
 	}
 	return b
 }
@@ -175,31 +200,38 @@ func scratch(seconds float64) buffer {
 // right letter of the word so far, so a word being solved is heard climbing.
 // A letter filling count cells plucks count times, a beat apart, as its
 // letters fly into the word one after another.
-func woodRight(step, count int) []float32 {
-	count = max(count, 1)
-	const apart = 0.045
-	b := newBuffer(0.9 + apart*float64(count-1))
-	f := freq(scaleNote(step))
-	for n := range count {
-		b.mix(pluck(f, 0.9, 1), apart*float64(n), 1/(1+0.25*float64(n)))
+func woodRight(steps ...int) []float32 {
+	if len(steps) == 0 {
+		steps = []int{0}
+	}
+	b := newBuffer(0.9 + noteApart*float64(len(steps)-1))
+	for n, step := range steps {
+		b.mix(pluck(freq(scaleNote(step)), 0.9, 1), noteApart*float64(n), 1)
 	}
 	return b.samples(0.55)
 }
+
+// noteApart is how far apart the notes of a letter in several cells sound,
+// in step with their flights.
+const noteApart = 0.045
 
 // woodWrong is a wrong letter: a knock, with the scratch of the pen drawing the
 // new part on top of it.
 func woodWrong() []float32 {
 	b := newBuffer(0.55)
 	b.mix(knock(98), 0, 1)
-	b.mix(scratch(0.45), 0.02, 0.35)
-	return b.samples(0.6)
+	b.mix(scratch(0.45), 0.03, 0.18)
+	return b.samples(0.42)
 }
 
 // woodHint is a letter bought with a guess: the right-letter pluck, with a
 // little shimmer two octaves above it to mark it as given rather than found.
-func woodHint(step, count int) []float32 {
-	f := freq(scaleNote(step))
-	right := woodRight(step, count)
+func woodHint(steps ...int) []float32 {
+	if len(steps) == 0 {
+		steps = []int{0}
+	}
+	f := freq(scaleNote(steps[len(steps)-1]))
+	right := woodRight(steps...)
 	b := newBuffer(max(float64(len(right))/Rate, 0.7))
 	for i, v := range right {
 		b[i] += float64(v)

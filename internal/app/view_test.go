@@ -363,8 +363,10 @@ func TestEachGuessPlaysItsCue(t *testing.T) {
 		name string
 		cue  []float32
 	}{
-		{"first right", sounds.Wood.Right(0, 1)},
-		{"second right", sounds.Wood.Right(1, 1)},
+		// ABC is three cells, so the notes are spread to land the last on
+		// the top step: 0, then half way, then the top.
+		{"first right", sounds.Wood.Right(0)},
+		{"second right", sounds.Wood.Right(5)},
 		{"wrong", sounds.Wood.Wrong()},
 	} {
 		if !cues.heard(want.cue) {
@@ -372,7 +374,7 @@ func TestEachGuessPlaysItsCue(t *testing.T) {
 		}
 	}
 	tt.Key(0, ui.KeyC)
-	if !cues.heard(sounds.Wood.Right(2, 1)) || !cues.heard(sounds.Wood.WordWon()) {
+	if !cues.heard(sounds.Wood.Right(sounds.Top)) || !cues.heard(sounds.Wood.WordWon()) {
 		t.Error("the last letter did not play its pluck and the win")
 	}
 	tt.Key(0, ui.KeyEnter)

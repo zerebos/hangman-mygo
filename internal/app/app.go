@@ -5,7 +5,6 @@ package app
 import (
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/zerebos/hangman-mygo/internal/game"
@@ -124,7 +123,7 @@ func (a *App) guess(letter rune) {
 
 	switch out.Result {
 	case game.Correct:
-		a.play(sounds.Wood.Right(a.rightStep(), occurrences(a.game.Word(), a.lastGuess)), 0)
+		a.play(sounds.Wood.Right(a.noteSteps(a.lastGuess)...), 0)
 	case game.Wrong:
 		a.play(sounds.Wood.Wrong(), 0)
 	}
@@ -155,7 +154,7 @@ func (a *App) hint() {
 	}
 	a.lastGuess = out.Letter
 	earned := a.record(out.Word, out.Match)
-	a.play(sounds.Wood.Hint(a.rightStep(), occurrences(a.game.Word(), out.Letter)), 0)
+	a.play(sounds.Wood.Hint(a.noteSteps(out.Letter)...), 0)
 	a.playWordEnd(out.Word)
 	switch out.Word {
 	case game.Won:
@@ -188,17 +187,21 @@ func (a *App) playWordEnd(word game.Result) {
 	}
 }
 
-// rightStep is which step up the scale a right letter plays: how many right
-// letters the word has had, this one included, counted from 0. So a word
-// being solved is heard climbing.
-func (a *App) rightStep() int {
-	n := 0
-	for _, r := range a.game.Guessed().String() {
-		if strings.ContainsRune(a.game.Word(), r) {
-			n++
+// noteSteps is the notes a right letter just guessed plays: one for each
+// cell it filled, placed by how many of the word's cells were showing
+// before it, so the word climbs the scale to its last cell (sounds.Steps).
+func (a *App) noteSteps(letter rune) []int {
+	cells, showing := 0, 0
+	for _, cell := range a.game.Cells() {
+		if cell.Guessable {
+			cells++
+			if cell.Revealed {
+				showing++
+			}
 		}
 	}
-	return max(n-1, 0)
+	count := occurrences(a.game.Word(), letter)
+	return sounds.Steps(showing-count, count, cells)
 }
 
 // showClue puts the clue on screen. Nothing is recorded or charged.

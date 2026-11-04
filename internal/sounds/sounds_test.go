@@ -10,13 +10,13 @@ func cues() map[string][]float32 {
 	out := map[string][]float32{}
 	for _, p := range []Palette{Wood} {
 		for name, s := range map[string][]float32{
-			"right":       p.Right(0, 1),
-			"right high":  p.Right(14, 1),
-			"right x3":    p.Right(3, 3),
-			"right x9":    p.Right(3, 9),
+			"right":       p.Right(0),
+			"right high":  p.Right(Top),
+			"right x3":    p.Right(3, 4, 5),
+			"right x9":    p.Right(1, 2, 3, 4, 5, 6, 7, 8, 9),
 			"wrong":       p.Wrong(),
-			"hint":        p.Hint(2, 1),
-			"hint x9":     p.Hint(2, 9),
+			"hint":        p.Hint(2),
+			"hint x9":     p.Hint(1, 2, 3, 4, 5, 6, 7, 8, 9),
 			"word won":    p.WordWon(),
 			"word lost":   p.WordLost(),
 			"match won":   p.MatchWon(),
@@ -80,9 +80,31 @@ func TestTheRightLetterClimbs(t *testing.T) {
 // Plucking a letter several times takes longer, a beat per extra cell.
 func TestALetterInSeveralCellsPlucksEachOfThem(t *testing.T) {
 	for _, p := range []Palette{Wood} {
-		one, three := len(p.Right(0, 1)), len(p.Right(0, 3))
+		one, three := len(p.Right(0)), len(p.Right(0, 1, 2))
 		if three <= one {
 			t.Errorf("%s: three plucks %d samples, one %d", p.Name, three, one)
 		}
+	}
+}
+
+// A word climbs the scale to its last cell, whatever its length, and a
+// letter in several cells plays a rising run rather than one note twice.
+func TestAWordClimbsToTheTopOnItsLastCell(t *testing.T) {
+	for _, cells := range []int{1, 2, 3, 6, 10, 14} {
+		prev := -1
+		for filled := range cells {
+			step := Steps(filled, 1, cells)[0]
+			if step < prev {
+				t.Errorf("%d cells: cell %d steps down to %d from %d", cells, filled, step, prev)
+			}
+			prev = step
+		}
+		if prev != Top {
+			t.Errorf("%d cells: the last cell plays %d, not the top %d", cells, prev, Top)
+		}
+	}
+	run := Steps(2, 3, 10)
+	if !(run[0] < run[1] && run[1] < run[2]) {
+		t.Errorf("a letter in three cells plays %v, not a rising run", run)
 	}
 }
