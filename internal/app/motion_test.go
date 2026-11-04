@@ -38,7 +38,7 @@ func TestEveryEffectSettles(t *testing.T) {
 	if !tt.FramePending() {
 		t.Fatal("a guess played no animation")
 	}
-	tt.Advance(2 * time.Second)
+	tt.Advance(3 * time.Second)
 	if tt.FramePending() {
 		t.Error("the board kept asking for frames after its animations")
 	}
@@ -49,4 +49,26 @@ func abs(v float32) float32 {
 		return -v
 	}
 	return v
+}
+
+// A replayed sequence starts from the value it last showed, so without the
+// snap back to zero every replay after the first would sit at 1. The gallows
+// drew its parts on only on the first wrong guess of a session that way.
+func TestOncePlaysAgainFromTheStartEveryRun(t *testing.T) {
+	run, value := 1, float32(0)
+	view := func(c *ui.Context) {
+		box := ui.Box(c.Key("box")).Size(10, 10)
+		value = once(box, "t", run, 400*time.Millisecond, ui.Linear)
+	}
+	tt := ui.NewTester(view, 100, 100)
+	tt.Advance(time.Second)
+	if value != 1 {
+		t.Fatalf("first run ended at %v", value)
+	}
+	run = 2
+	tt.Frame()
+	tt.Advance(200 * time.Millisecond)
+	if value > 0.7 {
+		t.Errorf("half way through the second run the value is %v", value)
+	}
 }

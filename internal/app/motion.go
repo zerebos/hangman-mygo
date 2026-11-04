@@ -26,7 +26,7 @@ const (
 	pipHaloFade = 0.6
 
 	keySettle = 240 * time.Millisecond
-	drawOn    = 300 * time.Millisecond
+	drawOn    = 520 * time.Millisecond
 )
 
 // shakeOffset is the word row's offset delta of the way through a shake: a
@@ -62,14 +62,18 @@ var winReveal = reveal{fade: 260 * time.Millisecond, step: 55 * time.Millisecond
 // play fades the glyph in as the index-th letter of the reveal. Only the
 // paint moves, so the row measures the same the whole way through.
 func (r reveal) play(glyph ui.Element, key string, run uint64, index int) {
-	t := glyph.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: r.fade, Value: 1, Ease: ui.EaseInOut}},
+	t := glyph.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: time.Millisecond, Value: 0}, {At: r.fade, Value: 1, Ease: ui.EaseInOut}},
 		ui.KeyframeOptions{Run: run, Delay: r.step * time.Duration(index)})
 	glyph.Opacity(t).Translate(0, r.rise*(1-t))
 }
 
 // once is a 0 to 1 sequence over d, replayed whenever run changes.
+//
+// A replayed sequence starts from the value it last showed rather than from
+// its first frame, which for this one is 1, so it would play 1 to 1 and
+// nothing would move. The first millisecond snaps it back to 0.
 func once(e ui.Element, key string, run int, d time.Duration, ease ui.Easing) float32 {
-	return e.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: d, Value: 1, Ease: ease}},
+	return e.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: time.Millisecond, Value: 0}, {At: d, Value: 1, Ease: ease}},
 		ui.KeyframeOptions{Run: uint64(run)})
 }
 

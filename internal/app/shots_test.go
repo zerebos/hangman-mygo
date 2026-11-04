@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -165,4 +166,33 @@ func containsRune(s string, r rune) bool {
 		}
 	}
 	return false
+}
+
+// TestGallowsFrames renders a wrong guess at several moments, to check the
+// draw-on and the sway by eye. Gated on HANGMAN_SHOTS like TestShots.
+func TestGallowsFrames(t *testing.T) {
+	dir := os.Getenv("HANGMAN_SHOTS")
+	if dir == "" {
+		t.Skip("set HANGMAN_SHOTS to a directory to write screenshots")
+	}
+	a := New(settings.Settings{}, Options{})
+	a.game = game.WithSeed(game.Insane, 7)
+	tt := ui.NewTester(a.View, 1000, 800)
+	for i := range 3 {
+		tt.Key(0, ui.KeyA+ui.Key(wrongLetter(a.game)-'A'))
+		if i < 2 {
+			tt.Advance(3 * time.Second)
+		}
+	}
+	elapsed := time.Duration(0)
+	for _, at := range []time.Duration{60, 180, 320, 500, 800, 1200} {
+		tt.Advance(at*time.Millisecond - elapsed)
+		elapsed = at * time.Millisecond
+		f, err := os.Create(filepath.Join(dir, fmt.Sprintf("gallows-%04d.png", at)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = png.Encode(f, tt.Image())
+		f.Close()
+	}
 }

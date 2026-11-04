@@ -390,3 +390,9 @@ func arc(center Point, radius, from, to float32, segments int) []Point {
 	}
 	return points
 }
+
+// Pivot is where the rope hangs from the beam, which the figure swings
+// around.
+func Pivot() Point {
+	return Point{beamX, beamY}
+}
