@@ -168,8 +168,9 @@ type legendEntry struct {
 // shortcutLegend is what the legend lists for the game in hand. The four
 // standing shortcuts are always there. Enter is listed only while it does
 // something, under the name of what it does: the next word, the match's
-// summary once the last word is over, and a new match from the summary.
-func shortcutLegend(g *game.Game, clueShown, summaryShown bool) []legendEntry {
+// summary once the last word is over, and a new match from the summary when
+// there is something to replay.
+func shortcutLegend(g *game.Game, clueShown, summaryShown, canReplay bool) []legendEntry {
 	hints := []legendEntry{
 		{shortcutHint, g.CanHint()},
 		{shortcutClue, canShowClue(g, clueShown)},
@@ -181,7 +182,7 @@ func shortcutLegend(g *game.Game, clueShown, summaryShown bool) []legendEntry {
 		hints = append(hints, legendEntry{shortcutNextWord, true})
 	case g.IsMatchOver() && !summaryShown:
 		hints = append(hints, legendEntry{shortcutSeeMatch, true})
-	case g.IsMatchOver() && g.Difficulty() != game.NoDifficulty:
+	case g.IsMatchOver() && canReplay:
 		hints = append(hints, legendEntry{shortcutPlayAgain, true})
 	}
 	return hints
@@ -278,19 +279,21 @@ func switchDifficulty(g *game.Game, d game.Difficulty) (*abandonCharge, bool) {
 // The charge is read before the load but handed back only on success: a file
 // that will not open, will not parse or holds nothing playable leaves the word
 // on the board, so charging for it would take a word the player still has.
-func loadWords(g *game.Game, contents string, readErr error) (*abandonCharge, bool) {
+//
+// The pack is handed back too, so a finished match on it can be played again.
+func loadWords(g *game.Game, contents string, readErr error) (*abandonCharge, *words.Pack, bool) {
 	charge := wordBeingAbandoned(g)
 	if readErr != nil {
-		return nil, false
+		return nil, nil, false
 	}
 	pack, err := words.Parse(contents)
 	if err != nil {
-		return nil, false
+		return nil, nil, false
 	}
 	if g.SetPack(pack) != nil {
-		return nil, false
+		return nil, nil, false
 	}
-	return charge, true
+	return charge, &pack, true
 }
 
 // resumeOrStart is the match to open the window on: the one the last run left

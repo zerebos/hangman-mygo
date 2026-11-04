@@ -48,8 +48,8 @@ func (a *App) summary(c *ui.Context, p palette) {
 			}
 		})
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			if d := g.Difficulty(); d != game.NoDifficulty {
-				if ui.PrimaryButton(c.Key("again"), "Play "+d.Label()+" again").Padding(10, 22).
+			if a.canReplay() {
+				if ui.PrimaryButton(c.Key("again"), "Play "+subtitle(g)+" again").Padding(10, 22).
 					Tooltip("Start a new match (Enter)").Clicked() {
 					a.playAgain()
 				}

@@ -9,6 +9,7 @@ import (
 	"github.com/zerebos/hangman-mygo/internal/game"
 	"github.com/zerebos/hangman-mygo/internal/settings"
 	"github.com/zerebos/hangman-mygo/internal/stats"
+	"github.com/zerebos/hangman-mygo/internal/words"
 )
 
 // Cues plays the original's two sound cues. Giving up is silent, as it was
@@ -67,6 +68,9 @@ type App struct {
 	// in place of the stage. It stays down until the player asks for it, so
 	// the last word's result is seen first.
 	summaryShown bool
+	// lastPack is the last word list loaded from a file, kept in memory only,
+	// so Play again can deal its match afresh. A relaunch forgets it.
+	lastPack *words.Pack
 	// confetti is the burst a won match's summary throws.
 	confetti []piece
 	// confirmReset is whether the Reset stats question is open.
@@ -211,11 +215,26 @@ func (a *App) showSummary() {
 	}
 }
 
-// playAgain starts a new match on the difficulty just finished. A list of
-// your own has no difficulty to replay, and its file is not kept.
+// canReplay reports whether Play again has something to deal: the
+// difficulty just finished, or the word list loaded this session.
+func (a *App) canReplay() bool {
+	return a.game.Difficulty() != game.NoDifficulty || a.lastPack != nil
+}
+
+// playAgain starts a new match on what the one just finished was played
+// from.
 func (a *App) playAgain() {
-	if d := a.game.Difficulty(); d != game.NoDifficulty && a.game.IsMatchOver() {
+	if !a.game.IsMatchOver() {
+		return
+	}
+	if d := a.game.Difficulty(); d != game.NoDifficulty {
 		a.setDifficulty(d)
+		return
+	}
+	if a.lastPack != nil && a.game.SetPack(*a.lastPack) == nil {
+		a.session.StartMatch()
+		a.freshWord(nil)
+		a.persist()
 	}
 }
 
@@ -262,11 +281,12 @@ func (a *App) openWordList() {
 
 // loadWordList plays the list a file held, or says it could not.
 func (a *App) loadWordList(contents string, err error) {
-	charge, ok := loadWords(a.game, contents, err)
+	charge, pack, ok := loadWords(a.game, contents, err)
 	if !ok {
 		a.notice = bad(fileError)
 		return
 	}
+	a.lastPack = pack
 	a.session.StartMatch()
 	a.freshWord(a.recordAbandoned(charge))
 	a.toast = loadedSummary(a.game.PackWords(), a.game.TotalWords())

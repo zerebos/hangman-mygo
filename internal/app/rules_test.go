@@ -77,7 +77,7 @@ func legendOf(g *game.Game, clueShown bool) map[shortcut]bool {
 
 func legendWith(g *game.Game, clueShown, summaryShown bool) map[shortcut]bool {
 	out := map[shortcut]bool{}
-	for _, e := range shortcutLegend(g, clueShown, summaryShown) {
+	for _, e := range shortcutLegend(g, clueShown, summaryShown, g.Difficulty() != game.NoDifficulty) {
 		out[e.shortcut] = e.live
 	}
 	return out
@@ -140,11 +140,11 @@ func TestAFinishedMatchOffersEnterUnderTheNameOfWhatItDoes(t *testing.T) {
 	if got := legendWith(g, false, true); !got[shortcutPlayAgain] || got[shortcutSeeMatch] {
 		t.Errorf("the summary offers %v", got)
 	}
-	// A list of your own has no difficulty to play again.
-	list := mustWords(t, "ALPHA")
-	list.GiveUp()
-	if _, listed := legendWith(list, false, true)[shortcutPlayAgain]; listed {
-		t.Error("Play again offered for a list of your own")
+	// Nothing to replay, nothing offered.
+	for _, e := range shortcutLegend(g, false, true, false) {
+		if e.shortcut == shortcutPlayAgain {
+			t.Error("Play again offered with nothing to replay")
+		}
 	}
 }
 
@@ -335,8 +335,8 @@ func TestReclickingTheDifficultyInPlayCostsTheWordNothing(t *testing.T) {
 func TestAWordListThatLoadsChargesTheWordItReplaces(t *testing.T) {
 	g := game.New(game.Medium)
 	g.Guess(wrongLetter(g))
-	charge, ok := loadWords(g, "Alpha\nOmega\n", nil)
-	if !ok || charge == nil || charge.difficulty != game.Medium {
+	charge, pack, ok := loadWords(g, "Alpha\nOmega\n", nil)
+	if !ok || charge == nil || charge.difficulty != game.Medium || pack == nil || len(pack.List) != 2 {
 		t.Errorf("charge %+v, ok %v", charge, ok)
 	}
 	if g.Difficulty() != game.NoDifficulty || g.PackWords() != 2 {
@@ -345,15 +345,18 @@ func TestAWordListThatLoadsChargesTheWordItReplaces(t *testing.T) {
 }
 
 func TestAWordListThatWillNotLoadChargesNothing(t *testing.T) {
-	for name, load := range map[string]func(*game.Game) (*abandonCharge, bool){
-		"unreadable":    func(g *game.Game) (*abandonCharge, bool) { return loadWords(g, "", errors.New("gone")) },
-		"bad JSON":      func(g *game.Game) (*abandonCharge, bool) { return loadWords(g, `{"words": [`, nil) },
-		"nothing in it": func(g *game.Game) (*abandonCharge, bool) { return loadWords(g, "123\n,,,\n", nil) },
+	for name, file := range map[string]struct {
+		text string
+		err  error
+	}{
+		"unreadable":    {"", errors.New("gone")},
+		"bad JSON":      {`{"words": [`, nil},
+		"nothing in it": {"123\n,,,\n", nil},
 	} {
 		g := game.New(game.Easy)
 		word := g.Word()
 		g.Guess(wrongLetter(g))
-		if charge, ok := load(g); ok || charge != nil || g.Word() != word || !g.HasWordToLose() {
+		if charge, pack, ok := loadWords(g, file.text, file.err); ok || charge != nil || pack != nil || g.Word() != word || !g.HasWordToLose() {
 			t.Errorf("%s: charge %+v, ok %v", name, charge, ok)
 		}
 	}

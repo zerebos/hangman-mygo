@@ -277,3 +277,27 @@ func TestAWonMatchThrowsConfettiThatLands(t *testing.T) {
 		t.Error("the confetti never landed")
 	}
 }
+
+// A list loaded this session can be played again from its summary.
+func TestAWordListOfYourOwnCanBePlayedAgain(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "list.json")
+	if err := os.WriteFile(path, []byte(`{"name":"Pets","words":[{"word":"Cat"},{"word":"Dog"}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	a := New(settings.Settings{}, Options{PickFile: func(done func(string, error)) { done(ReadFile(path)) }})
+	tt := ui.NewTester(a.View, 1000, 800)
+	tt.Key(ui.Cmd, ui.KeyO)
+	for !a.game.IsMatchOver() {
+		tt.Key(ui.Cmd, ui.KeyN)
+		// On the last word, Enter opens the summary.
+		tt.Key(0, ui.KeyEnter)
+	}
+	tt.Advance(time.Second)
+	if !a.summaryShown || !tt.HasText("Play Pets again") {
+		t.Fatalf("summary %v, texts %q", a.summaryShown, tt.Texts())
+	}
+	tt.Key(0, ui.KeyEnter)
+	if a.game.IsMatchOver() || a.game.PackName() != "Pets" || a.game.WordNumber() != 1 || a.session.MatchPoints() != 0 {
+		t.Errorf("after Play again: over %v, pack %q, word %d", a.game.IsMatchOver(), a.game.PackName(), a.game.WordNumber())
+	}
+}
