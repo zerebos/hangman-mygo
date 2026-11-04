@@ -44,6 +44,10 @@ Almost everything moves:
 - A match ends on its own summary, its numbers counting up one after another,
   with confetti when you won it.
 
+The gallows can also be drawn by hand: every line wobbles a little, tapers,
+and runs past its ends, as if drawn with a marker. It is a switch in the ⋯
+menu, remembered between launches.
+
 With the desktop's reduce-motion setting on, nothing travels. Fades still
 fade in place.
 
@@ -63,6 +67,7 @@ fade in place.
 | Show the lifetime stats | The ⋯ menu |
 | Throw the lifetime stats away | `Reset stats`, in the stats drawer, which asks first |
 | Switch between light and dark | The ⋯ menu |
+| Draw the gallows by hand, as with a marker | `Hand-drawn gallows`, in the ⋯ menu |
 
 The strip along the bottom of the window lists the shortcuts, dimming the ones
 the game would refuse right now. Choosing the difficulty already in play does
@@ -114,7 +119,7 @@ To look at the window without opening it, render states and moments part way
 through animations to PNGs:
 
 ```sh
-HANGMAN_SHOTS=./shots go test ./internal/app -run 'TestShots|TestGallowsFrames'
+HANGMAN_SHOTS=./shots go test ./internal/app -run 'TestShots|TestGallowsFrames|TestSketchFrames'
 ```
 
 ## Differences from hangman-gpui
