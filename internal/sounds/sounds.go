@@ -14,8 +14,8 @@ import (
 )
 
 // Palette is one set of the game's cues. Right, Hint and Wrong each play
-// one note, at the step they are given (see Step): up the scale for right
-// letters, down it for wrong ones.
+// one note, at the step they are given: up the scale for right letters (see
+// RightStep), down by semitones for wrong ones (see WrongStep).
 type Palette struct {
 	Name       string
 	Right      func(step int) []float32
@@ -51,42 +51,40 @@ func freq(note int) float64 {
 	return 440 * math.Pow(2, float64(note-69)/12)
 }
 
-// Top is the step a climb or a fall ends on: one octave of the pentatonic
-// scale away from where it began. A word's last right letter lands on C6,
-// the octave of the first and the note the win resolves to, so solving a
-// word sounds like arriving rather than reaching.
+// Top is the step a word's last right letter plays: C6, the octave of the
+// root and the note the win resolves to, so solving a word sounds like
+// arriving rather than reaching.
 const Top = len(pentatonic)
 
-// Step is which note the k-th of n guesses plays, counting from 0, spread so
-// the n-th always lands on Top: k counts right letters out of the word's
-// distinct letters, or wrong ones out of the guess budget. One guess is one
-// note, however many cells it fills.
-func Step(k, n int) int {
-	if n <= 1 {
-		return Top
-	}
-	return int(math.Round(float64(min(max(k, 0), n-1)) * float64(Top) / float64(n-1)))
+// RightStep is the note the k-th of a word's n distinct letters plays when
+// it is found, counting from 0. Every letter climbs one new note, and the
+// climb starts lower the more letters there are, so the last one always
+// lands on Top and no two guesses of a word play the same note.
+func RightStep(k, n int) int {
+	return Top - max(n-1, 0) + min(max(k, 0), max(n-1, 0))
 }
 
-// minor is the minor pentatonic scale in semitones below its root, for the
-// fall of the wrong letters.
-var minor = [...]int{0, 2, 5, 7, 9}
-
-// missRoot is the note the wrong letters fall from (A3): the key of the word
-// lost phrase, so a lost word sounds like the end of a fall already heard.
-const missRoot = 57
-
-// missNote is the step-th note down the minor scale from missRoot.
-func missNote(step int) int {
-	step = max(step, 0)
-	return missRoot - 12*(step/len(minor)) - minor[step%len(minor)]
-}
-
-// scaleNote is the step-th note of the pentatonic scale above root, climbing
-// through octaves.
+// scaleNote is the step-th note of the pentatonic scale from root, climbing
+// through octaves above it and falling through them below it.
 func scaleNote(step int) int {
-	step = max(step, 0)
-	return root + 12*(step/len(pentatonic)) + pentatonic[step%len(pentatonic)]
+	octave, degree := step/len(pentatonic), step%len(pentatonic)
+	if degree < 0 {
+		octave, degree = octave-1, degree+len(pentatonic)
+	}
+	return root + 12*octave + pentatonic[degree]
+}
+
+// missBottom is the note a word's last affordable wrong letter lands on
+// (A2): the root of the word-lost phrase, an octave down, so a lost word
+// sounds like the end of a fall already heard.
+const missBottom = 45
+
+// WrongStep is the note the k-th of n affordable wrong letters plays,
+// counting from 0, in semitones above missBottom. Each miss falls one
+// semitone, a fall that tightens as it goes, and the last lands on
+// missBottom. With Insane's six guesses the fall starts on D3.
+func WrongStep(k, n int) int {
+	return max(n-1, 0) - min(max(k, 0), max(n-1, 0))
 }
 
 // buffer is a cue being built, in float64 for headroom while it is mixed.
@@ -197,10 +195,10 @@ func woodRight(step int) []float32 {
 }
 
 // woodWrong is a wrong letter: the same wooden bar, struck low and damped at
-// once, at the step-th note down a minor scale. It is one instrument with
-// the right letters and the word lost, falling where they climb.
+// once, step semitones above missBottom. It is one instrument with the right
+// letters and the word lost, falling where they climb.
 func woodWrong(step int) []float32 {
-	f := freq(missNote(step))
+	f := freq(missBottom + max(step, 0))
 	b := newBuffer(0.5)
 	b.mix(pluck(f, 0.45, 0.35), 0, 1)
 	// A little of the mallet's body, so it lands as a dead note rather than

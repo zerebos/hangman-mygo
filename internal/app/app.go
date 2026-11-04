@@ -125,7 +125,7 @@ func (a *App) guess(letter rune) {
 	case game.Correct:
 		a.play(sounds.Wood.Right(a.rightStep()), 0)
 	case game.Wrong:
-		a.play(sounds.Wood.Wrong(sounds.Step(a.game.WrongGuesses()-1, a.game.GuessBudget())), 0)
+		a.play(sounds.Wood.Wrong(sounds.WrongStep(a.game.WrongGuesses()-1, a.game.GuessBudget())), 0)
 	}
 	a.playWordEnd(out.Word)
 
@@ -189,7 +189,7 @@ func (a *App) playWordEnd(word game.Result) {
 
 // rightStep is the note a right letter just guessed plays: how many of the
 // word's distinct letters had been found before it, out of all of them, so
-// the word climbs to its octave on its last letter (sounds.Step).
+// the word climbs a note a letter to its octave on the last (sounds.RightStep).
 func (a *App) rightStep() int {
 	var distinct, found game.Letters
 	for _, r := range a.game.Word() {
@@ -198,7 +198,7 @@ func (a *App) rightStep() int {
 			found = found.With(r)
 		}
 	}
-	return sounds.Step(found.Len()-1, distinct.Len())
+	return sounds.RightStep(found.Len()-1, distinct.Len())
 }
 
 // showClue puts the clue on screen. Nothing is recorded or charged.

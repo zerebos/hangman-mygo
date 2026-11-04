@@ -363,11 +363,12 @@ func TestEachGuessPlaysItsCue(t *testing.T) {
 		name string
 		cue  []float32
 	}{
-		// ABC is three distinct letters, so the notes are spread to land the
-		// last on the top step: the first, half way, then the octave.
-		{"first right", sounds.Wood.Right(0)},
-		{"second right", sounds.Wood.Right(sounds.Step(1, 3))},
-		{"first wrong", sounds.Wood.Wrong(0)},
+		// ABC is three distinct letters, climbing to the octave on the last.
+		{"first right", sounds.Wood.Right(sounds.Top - 2)},
+		{"second right", sounds.Wood.Right(sounds.Top - 1)},
+		// A list of your own allows six wrong guesses, so the first falls
+		// from five semitones up, D3.
+		{"first wrong", sounds.Wood.Wrong(sounds.WrongStep(0, a.game.GuessBudget()))},
 	} {
 		if !cues.heard(want.cue) {
 			t.Errorf("did not hear the %s", want.name)

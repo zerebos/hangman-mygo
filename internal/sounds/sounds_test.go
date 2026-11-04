@@ -12,8 +12,9 @@ func cues() map[string][]float32 {
 		for name, s := range map[string][]float32{
 			"right":       p.Right(0),
 			"right top":   p.Right(Top),
-			"wrong":       p.Wrong(0),
-			"wrong low":   p.Wrong(Top),
+			"right low":   p.Right(RightStep(0, 14)),
+			"wrong":       p.Wrong(WrongStep(0, 10)),
+			"wrong low":   p.Wrong(0),
 			"hint":        p.Hint(2),
 			"hint top":    p.Hint(Top),
 			"word won":    p.WordWon(),
@@ -76,32 +77,28 @@ func TestTheRightLetterClimbs(t *testing.T) {
 	}
 }
 
-// One guess is one note, and a word's right letters climb to the octave on
-// its last one, its wrong letters fall to the octave below on the last one
-// the budget allows, whatever their number.
-func TestAWordClimbsToItsOctaveAndMissesFallToTheirs(t *testing.T) {
-	for _, n := range []int{1, 2, 3, 6, 10} {
-		prev := -1
-		for k := range n {
-			step := Step(k, n)
-			if step < prev {
-				t.Errorf("%d guesses: guess %d steps back to %d from %d", n, k, step, prev)
+// Every right letter of a word climbs one new note and the last lands on
+// the octave, and every miss falls one semitone and the last affordable one
+// lands on the bottom, however many there are.
+func TestRightLettersClimbAndMissesFall(t *testing.T) {
+	for _, n := range []int{1, 2, 3, 6, 10, 14} {
+		for k := 1; k < n; k++ {
+			if scaleNote(RightStep(k, n)) <= scaleNote(RightStep(k-1, n)) {
+				t.Errorf("%d letters: letter %d does not climb", n, k)
 			}
-			prev = step
+			if WrongStep(k, n) != WrongStep(k-1, n)-1 {
+				t.Errorf("%d misses: miss %d does not fall a semitone", n, k)
+			}
 		}
-		if prev != Top {
-			t.Errorf("%d guesses: the last plays step %d, not %d", n, prev, Top)
+		if got := scaleNote(RightStep(n-1, n)); got != root+12 {
+			t.Errorf("%d letters: the last plays note %d, not the octave %d", n, got, root+12)
+		}
+		if got := WrongStep(n-1, n); got != 0 {
+			t.Errorf("%d misses: the last is %d semitones above the bottom", n, got)
 		}
 	}
-	if scaleNote(Top) != root+12 {
-		t.Errorf("the top of the climb is note %d, not the octave %d", scaleNote(Top), root+12)
-	}
-	if missNote(Top) != missRoot-12 {
-		t.Errorf("the bottom of the fall is note %d, not the octave %d", missNote(Top), missRoot-12)
-	}
-	for step := 1; step <= Top; step++ {
-		if missNote(step) >= missNote(step-1) {
-			t.Errorf("miss %d is note %d, not below %d", step, missNote(step), missNote(step-1))
-		}
+	// Insane's six guesses start the fall on D3.
+	if missBottom+WrongStep(0, 6) != 50 {
+		t.Errorf("Insane's first miss is note %d, not D3", missBottom+WrongStep(0, 6))
 	}
 }
