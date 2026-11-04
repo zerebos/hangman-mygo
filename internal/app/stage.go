@@ -67,7 +67,7 @@ func (a *App) pips(c *ui.Context, p palette) {
 					if step+1 == wrong {
 						halo := ui.Box(c.Key("halo")).Absolute().Top(0).Left(0).Size(pipSize, pipSize).
 							Radius(pipSize / 2).Background(p.Danger)
-						t := once(halo, "pulse", wrong, pipPulse, ui.EaseOut)
+						t := once(halo, "pulse", a.run(wrong), pipPulse, ui.EaseOut)
 						grow := 1 + 2*pipHalo/pipSize*t
 						halo.Scale(grow, grow)
 						halo.Opacity(pipHaloFade * (1 - t))
@@ -294,7 +294,7 @@ func (a *App) key(c *ui.Context, p palette, letter rune) {
 	// The key the last guess played fades from an unplayed key's colors into
 	// the ones its guess earned, rather than snapping to them.
 	if letter == a.lastGuess {
-		t := once(tile, "settle", guessCount(a.game), keySettle, ui.EaseInOut)
+		t := once(tile, "settle", a.run(guessCount(a.game)), keySettle, ui.EaseInOut)
 		bg, border, text = p.Surface.MixOklab(bg, t), p.Border.MixOklab(border, t), p.Text.MixOklab(text, t)
 	}
 	tile.Background(bg).Border(1, border).Children(func() {

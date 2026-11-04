@@ -1,6 +1,8 @@
 package app
 
 import (
+	"bytes"
+	"image"
 	"testing"
 	"time"
 
@@ -131,4 +133,51 @@ func TestLessMotionMeansNothingTravels(t *testing.T) {
 	if tt.FramePending() {
 		t.Error("a wrong guess still animates with less motion")
 	}
+}
+
+// The first wrong guess of a later word draws its part on as the first word's
+// did. The counts behind the effects start over with each word, and keyed by
+// the count alone the gallows found its sequence already played and showed
+// the part at once, with no sway, for every word after the first.
+func TestASecondWordDrawsItsPartsOnToo(t *testing.T) {
+	a, tt, _ := tester(t, settings.Settings{})
+	// Only the gallows' own box is compared, because other things move
+	// after a wrong guess too.
+	partWay := func() bool {
+		tt.Key(0, wrongKey(a.game))
+		box, ok := tt.Find(gallowsLabel(a.game.WrongGuesses(), a.game.GuessBudget()))
+		if !ok {
+			t.Fatal("no gallows on screen")
+		}
+		tt.Advance(60 * time.Millisecond)
+		early := crop(tt.Image(), box)
+		tt.Advance(3 * time.Second)
+		return !sameImage(early, crop(tt.Image(), box))
+	}
+	if !partWay() {
+		t.Fatal("the first word's wrong guess did not animate")
+	}
+	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(0, ui.KeyEnter)
+	tt.Advance(2 * time.Second)
+	if !partWay() {
+		t.Error("the second word's first wrong guess appeared at once")
+	}
+}
+
+func sameImage(a, b *image.RGBA) bool {
+	return a.Rect == b.Rect && bytes.Equal(a.Pix, b.Pix)
+}
+
+// crop copies the part of img under r, a box in DIPs at the tester's scale
+// of 1.
+func crop(img *image.RGBA, r ui.Rect) *image.RGBA {
+	box := image.Rect(int(r.X), int(r.Y), int(r.X+r.W), int(r.Y+r.H))
+	out := image.NewRGBA(image.Rect(0, 0, box.Dx(), box.Dy()))
+	for y := range box.Dy() {
+		for x := range box.Dx() {
+			out.Set(x, y, img.At(box.Min.X+x, box.Min.Y+y))
+		}
+	}
+	return out
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -52,11 +53,11 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 		gallows.Face:   figure,
 	}
 
-	box := a.glideOn(ui.Box(c.Key("gallows")).FillWidth().Grow(1).MinHeight(160))
+	box := a.glideOn(ui.Box(c.Key("gallows")).FillWidth().Grow(1).MinHeight(160)).Label(gallowsLabel(wrong, budget))
 	progress, swing := float32(1), float32(0)
 	if wrong > 0 {
-		progress = once(box, "draw", wrong, drawOn, ui.EaseOut)
-		t := once(box, "sway", wrong, swayTime, ui.Linear)
+		progress = once(box, "draw", a.run(wrong), drawOn, ui.EaseOut)
+		t := once(box, "sway", a.run(wrong), swayTime, ui.Linear)
 		angle := float32(swayAngle)
 		if lost {
 			angle = swayLost
@@ -156,4 +157,9 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 			}
 		})
 	})
+}
+
+// gallowsLabel names the drawing for screen readers, which cannot see it.
+func gallowsLabel(wrong, budget int) string {
+	return fmt.Sprintf("The gallows, %d of %d wrong guesses", wrong, budget)
 }

@@ -79,6 +79,15 @@ func once(e ui.Element, key string, run int, d time.Duration, ease ui.Easing) fl
 	return e.Keyframes(playKey{key, run}, []ui.Keyframe{{Value: 0}, {At: d, Value: 1, Ease: ease}})
 }
 
+// run is a count that moves once per event within a word (wrong guesses,
+// letters guessed) made unique for the whole session. Those counts start
+// over with every word, and an element that stays from word to word, as the
+// gallows does, would otherwise find a run of the same number already played
+// and show its end at once.
+func (a *App) run(n int) int {
+	return a.deal*100 + n
+}
+
 // playKey names one play of a sequence: its name and the run it belongs to.
 type playKey struct {
 	name string
