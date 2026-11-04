@@ -97,7 +97,7 @@ func TestTheFormatIsChosenByTheContentAndNotByAFileName(t *testing.T) {
 }
 
 func TestAByteOrderMarkDoesNotTurnAPackIntoAWordList(t *testing.T) {
-	pack := mustParse(t, "Feff{ \"name\": \"Pets\", \"words\": [{ \"word\": \"Cat\" }] }")
+	pack := mustParse(t, byteOrderMark+"{ \"name\": \"Pets\", \"words\": [{ \"word\": \"Cat\" }] }")
 	if pack.Name != "Pets" {
 		t.Errorf("name %q", pack.Name)
 	}

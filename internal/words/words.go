@@ -28,6 +28,9 @@ import (
 	"unicode"
 )
 
+// byteOrderMark is U+FEFF, which Windows editors put at the start of a file.
+const byteOrderMark = string(rune(0xFEFF))
+
 // Word is one word and everything the pack knows about it.
 //
 // An empty Category or Clue means the pack said nothing about it. Sanitize
@@ -95,7 +98,7 @@ type Pack struct {
 // default, and with it left on a JSON pack fails the `{` test and silently
 // loads its own lines as words.
 func Parse(text string) (Pack, error) {
-	text = strings.TrimPrefix(text, "Feff")
+	text = strings.TrimPrefix(text, byteOrderMark)
 	if strings.HasPrefix(strings.TrimLeftFunc(text, unicode.IsSpace), "{") {
 		var pack Pack
 		if err := json.Unmarshal([]byte(text), &pack); err != nil {
