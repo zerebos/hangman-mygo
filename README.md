@@ -3,9 +3,9 @@
 A Go port of [hangman-gpui](../hangman-gpui), drawn with the native UI of
 [mygo](https://github.com/egoist/mygo) instead of gpui-kit. hangman-gpui is
 itself a port of [`zerebos/Hangman`](https://github.com/zerebos/Hangman), a
-2015 Java/Swing game. The rules, word packs, scoring, sound cues and alert
-messages are the same; the interface was rethought around what mygo does
-well, which is making every change move.
+2015 Java/Swing game. The rules, word packs, scoring and alert messages are
+the same; the interface was rethought around what mygo does well, which is
+making every change move, and the sound was made anew.
 
 ## Building and running
 
@@ -17,8 +17,8 @@ go run .
 go test ./...
 ```
 
-No system libraries are needed on any platform, and the sound cues work out
-of the box, unlike the gpui version, where sound was an opt-in cargo feature.
+No system libraries are needed on any platform, and the sound works out of
+the box, unlike the gpui version, where sound was an opt-in cargo feature.
 
 ## The interface
 
@@ -47,6 +47,25 @@ Almost everything moves:
 The gallows is drawn by hand: every line wobbles a little, tapers, and runs
 past its ends, as if drawn with a marker.
 
+## Sound
+
+Every cue is synthesized by the game itself, in
+[`internal/sounds`](internal/sounds), so there are no sound files. The palette
+is a soft wooden pluck, like a marimba, on a pentatonic scale:
+
+- A right letter plucks one step higher than the last, so a word being solved
+  is heard climbing. A letter in several cells plucks once for each, a beat
+  apart, as its letters fly in.
+- A wrong letter is a muted knock with the scratch of the pen over it.
+- A hint is the pluck with a shimmer above it.
+- A word solved ends on a short rising arpeggio, and a word lost on three soft
+  notes stepping down.
+- The match's summary opens on a longer phrase if you won it, and a gentle
+  close if not.
+
+Giving up is silent, as it was in the original. `Sound effects` in the ⋯
+menu turns it all off, and is remembered.
+
 With the desktop's reduce-motion setting on, nothing travels. Fades still
 fade in place.
 
@@ -66,6 +85,7 @@ fade in place.
 | Show the lifetime stats | The ⋯ menu |
 | Throw the lifetime stats away | `Reset stats`, in the stats drawer, which asks first |
 | Switch between light and dark | The ⋯ menu |
+| Turn the sound effects on or off | The ⋯ menu |
 
 The strip along the bottom of the window lists the shortcuts, dimming the ones
 the game would refuse right now. Choosing the difficulty already in play does
@@ -106,7 +126,8 @@ real game could have reached is thrown away and a fresh one dealt.
 | [`internal/settings`](internal/settings) | `settings.json`: the theme, the difficulty, the stats and the match in flight. |
 | [`internal/gallows`](internal/gallows) | The gallows drawing as plain polylines. |
 | [`internal/app`](internal/app) | The window: its state and actions (`app.go`), the rules it reads (`rules.go`), and the view, split by part of the window (`view.go`, `header.go`, `stage.go`, `drawer.go`, `summary.go`, `drawing.go`, `confetti.go`, `controls.go`, `motion.go`). |
-| [`assets`](assets) | The four bundled packs and the two mp3 cues, embedded in the binary. |
+| [`internal/sounds`](internal/sounds) | The sound cues, synthesized as samples. |
+| [`assets`](assets) | The four bundled word packs, embedded in the binary. |
 
 Only `internal/app` and `main.go` import mygo. The other packages are plain
 Go, so their tests run without a window. The view's tests run without one
@@ -132,7 +153,10 @@ HANGMAN_SHOTS=./shots go test ./internal/app -run 'TestShots|TestGallowsFrames'
   and Command on a Mac, where the gpui version used Ctrl everywhere.
 - **The window geometry is mygo's.** Its `StateKey` remembers the window, so
   the settings file no longer stores it.
-- **Sound is on by default**, through mygo's own audio package.
+- **New sounds.** The original's two mp3 cues (the loss was a famous arcade
+  game's death sound) are replaced by cues the game synthesizes, one for
+  every guess as well as for the end of a word and a match, with a switch to
+  turn them off.
 - **A played key is a tile, not a button.** Clicking it again does nothing,
   where the gpui version's pressed button still took the click.
 
