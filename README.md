@@ -47,6 +47,9 @@ Almost everything moves:
 The gallows is drawn by hand: every line wobbles a little, tapers, and runs
 past its ends, as if drawn with a marker.
 
+With the desktop's reduce-motion setting on, nothing travels. Fades still
+fade in place.
+
 ## Sound
 
 Every cue is synthesized by the game itself, in
@@ -65,9 +68,6 @@ is a soft wooden pluck, like a marimba, on a pentatonic scale:
 
 Giving up is silent, as it was in the original. `Sound effects` in the ⋯
 menu turns it all off, and is remembered.
-
-With the desktop's reduce-motion setting on, nothing travels. Fades still
-fade in place.
 
 ## Controls
 
