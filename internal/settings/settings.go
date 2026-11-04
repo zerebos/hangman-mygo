@@ -168,8 +168,6 @@ type Settings struct {
 	Stats stats.Stats `json:"stats"`
 	// InFlight is the match still being played when the game closed, or nil.
 	InFlight *SavedMatch `json:"in_flight"`
-	// Sketch draws the gallows by hand rather than with clean lines.
-	Sketch bool `json:"sketch,omitempty"`
 }
 
 // Path is where the file lives, or "" on a system with no config directory.
@@ -219,9 +217,6 @@ func Parse(data []byte) Settings {
 		if json.Unmarshal(raw, &st) == nil {
 			s.Stats = st
 		}
-	}
-	if raw, ok := keys["sketch"]; ok {
-		_ = json.Unmarshal(raw, &s.Sketch)
 	}
 	if raw, ok := keys["in_flight"]; ok {
 		var m SavedMatch

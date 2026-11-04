@@ -76,8 +76,8 @@ func (a *App) summary(c *ui.Context, p palette) {
 // from zero, each tile a beat after the one before it.
 func countTile(c *ui.Context, p palette, index, run int, label string, value int, suffix string, color ui.Color) {
 	tile := ui.Column(c).Width(132).Gap(4).Padding(14, 16).Radius(12).Background(p.Surface)
-	t := tile.Keyframes("count", []ui.Keyframe{{Value: 0}, {At: time.Millisecond, Value: 0}, {At: 900 * time.Millisecond, Value: 1, Ease: ui.EaseOut}},
-		ui.KeyframeOptions{Run: uint64(run), Delay: time.Duration(index) * 140 * time.Millisecond})
+	t := tile.Keyframes(playKey{"count", run}, []ui.Keyframe{{Value: 0}, {At: 900 * time.Millisecond, Value: 1, Ease: ui.EaseOut}},
+		ui.KeyframeOptions{Delay: time.Duration(index) * 140 * time.Millisecond})
 	tile.Opacity(min(1, t*4)).Translate(0, 10*(1-min(1, t*2)))
 	tile.Children(func() {
 		ui.Textf(c, "%d%s", int(float32(value)*t+0.5), suffix).FontSize(26).Bold().TextColor(color).SingleLine()

@@ -36,8 +36,8 @@ const (
 // rope and the figure swing from the beam as the part lands, harder on the
 // guess that loses the word, settling as a pendulum does.
 //
-// With the hand-drawn setting on, every line is roughened as a marker draws
-// it: wobbling, tapered and run past its ends.
+// Every line is roughened as a marker draws it: wobbling, tapered and run
+// past its ends.
 func (a *App) drawGallows(c *ui.Context, p palette) {
 	wrong, budget := a.game.WrongGuesses(), a.game.GuessBudget()
 	lost := budget > 0 && wrong >= budget
@@ -67,7 +67,6 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 	}
 	settled := gallows.PartsDrawn(budget, max(wrong-1, 0))
 	drawn := gallows.PartsDrawn(budget, wrong)
-	sketch := a.settings.Sketch
 
 	// The figure is built whole and cut to the newest part's progress only
 	// after it is roughened, so a hand-drawn line keeps its wobble while it
@@ -79,10 +78,7 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 		fresh = min(settled, len(parts))
 	}
 	look := func(s gallows.Stroke, seed int) gallows.Stroke {
-		if sketch {
-			return s.Rough(uint64(seed)*7919+11, 1.4)
-		}
-		return s
+		return s.Rough(uint64(seed)*7919+11, 1.4)
 	}
 	var still, hanging, drawing []gallows.Stroke
 	for i, s := range gallows.FrameStrokes() {
@@ -110,7 +106,7 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 			m := fit.Map(q)
 			return r.X + m.X, r.Y + m.Y
 		}
-		path := func(points []gallows.Point, closed bool) *ui.Path {
+		path := func(points []gallows.Point) *ui.Path {
 			var path ui.Path
 			for i, q := range points {
 				x, y := at(q)
@@ -120,9 +116,6 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 					path.LineTo(x, y)
 				}
 			}
-			if closed {
-				path.Close()
-			}
 			return &path
 		}
 		stroke := func(s gallows.Stroke) {
@@ -130,19 +123,15 @@ func (a *App) drawGallows(c *ui.Context, p palette) {
 				return
 			}
 			width, color := fit.LineWidth(s.Width), colors[s.Ink]
-			if !sketch {
-				pt.StrokePath(path(s.Points, s.Closed), width, color)
-				return
-			}
 			// A marker's line: thinner toward both ends, segment by segment,
 			// with a faint second pass alongside it.
 			n := len(s.Points)
 			for j := 1; j < n; j++ {
 				u := float32(j) / float32(n)
 				taper := 0.55 + 0.45*min(1, u/0.15, (1-u)/0.15)
-				pt.StrokePath(path(s.Points[j-1:j+1], false), width*taper, color)
+				pt.StrokePath(path(s.Points[j-1:j+1]), width*taper, color)
 			}
-			pt.StrokePath(path(s.Points, false), width*0.35, color.Alpha(0.35))
+			pt.StrokePath(path(s.Points), width*0.35, color.Alpha(0.35))
 		}
 
 		for _, s := range still {

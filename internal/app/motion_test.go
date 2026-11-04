@@ -67,6 +67,11 @@ func TestOncePlaysAgainFromTheStartEveryRun(t *testing.T) {
 	}
 	run = 2
 	tt.Frame()
+	// On the very frame the run starts, not a moment later: a value that
+	// starts from where it last was draws a new part whole for a frame.
+	if value != 0 {
+		t.Errorf("the second run starts at %v", value)
+	}
 	tt.Advance(200 * time.Millisecond)
 	if value > 0.7 {
 		t.Errorf("half way through the second run the value is %v", value)

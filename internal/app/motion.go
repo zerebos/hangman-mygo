@@ -62,19 +62,27 @@ var winReveal = reveal{fade: 260 * time.Millisecond, step: 55 * time.Millisecond
 // play fades the glyph in as the index-th letter of the reveal. Only the
 // paint moves, so the row measures the same the whole way through.
 func (r reveal) play(glyph ui.Element, key string, run uint64, index int) {
-	t := glyph.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: time.Millisecond, Value: 0}, {At: r.fade, Value: 1, Ease: ui.EaseInOut}},
-		ui.KeyframeOptions{Run: run, Delay: r.step * time.Duration(index)})
+	t := glyph.Keyframes(playKey{key, int(run)}, []ui.Keyframe{{Value: 0}, {At: r.fade, Value: 1, Ease: ui.EaseInOut}},
+		ui.KeyframeOptions{Delay: r.step * time.Duration(index)})
 	glyph.Opacity(t).Translate(0, r.rise*(1-t))
 }
 
-// once is a 0 to 1 sequence over d, replayed whenever run changes.
+// once is a 0 to 1 sequence over d, played afresh whenever run changes.
 //
-// A replayed sequence starts from the value it last showed rather than from
-// its first frame, which for this one is 1, so it would play 1 to 1 and
-// nothing would move. The first millisecond snaps it back to 0.
+// Each run is a sequence of its own, keyed by the run, rather than one
+// sequence replayed through KeyframeOptions.Run. A replayed sequence starts
+// from the value it last showed, 1 here, so it played 1 to 1; snapping it
+// back to 0 after a millisecond still showed the finished value on the first
+// frame, which drew each new body part whole for a frame before it drew on.
+// A new sequence starts at its first frame, 0, on the frame it begins.
 func once(e ui.Element, key string, run int, d time.Duration, ease ui.Easing) float32 {
-	return e.Keyframes(key, []ui.Keyframe{{Value: 0}, {At: time.Millisecond, Value: 0}, {At: d, Value: 1, Ease: ease}},
-		ui.KeyframeOptions{Run: uint64(run)})
+	return e.Keyframes(playKey{key, run}, []ui.Keyframe{{Value: 0}, {At: d, Value: 1, Ease: ease}})
+}
+
+// playKey names one play of a sequence: its name and the run it belongs to.
+type playKey struct {
+	name string
+	run  int
 }
 
 // glideOn gives e the stage's glide, except while the stats drawer moves.

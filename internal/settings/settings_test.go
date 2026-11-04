@@ -293,16 +293,3 @@ func TestASettingsFileWrittenBeforeThisExistedSimplyHasNoMatch(t *testing.T) {
 		t.Errorf("match %+v", m)
 	}
 }
-
-// The hand-drawn gallows is remembered, and a value of the wrong shape costs
-// only itself.
-func TestTheHandDrawnGallowsIsRemembered(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "settings.json")
-	Settings{Theme: Light, Sketch: true}.Save(path)
-	if back := Load(path); !back.Sketch || back.Theme != Light {
-		t.Errorf("loaded %+v", back)
-	}
-	if s := Parse([]byte(`{"theme": "light", "sketch": "yes"}`)); s.Sketch || s.Theme != Light {
-		t.Errorf("parsed %+v", s)
-	}
-}
