@@ -15,8 +15,8 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 
 ## Rules for the code
 
-- Only `internal/app` and `main.go` import mygo. `words`, `game`, `stats`, `settings` and `gallows`
-  stay plain Go so their tests need no window.
+- Only `internal/app` and `main.go` import mygo. `words`, `game`, `stats`, `settings`, `gallows`
+  and `sounds` stay plain Go so their tests need no window and no audio device.
 - Absent values are zero values: `game.NoDifficulty`, `game.InPlay`, `game.MatchRunning`, an empty
   category or clue, a pack `GuessBudget` of 0. Keep blank meaning absent at every boundary.
 - The helpers in `internal/app/rules.go` take no UI types and are tested directly. Anything pulled
@@ -55,3 +55,18 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
   needs a `*ui.Context`.
 - On Windows and Linux the header draws the window controls (`HideWindowButtons`); maximize is
   marked `MaximizeButton()` for Windows 11's snap layouts, and the view calls `Maximize` itself.
+
+## Sound
+
+- Every cue is synthesized in `internal/sounds` as mono samples at 48 kHz; there are no sound
+  files. The app hands them to an `app.Speaker` (`main.go` wraps mygo's `audio.NewSound`), and
+  tests pass a recorder and compare the exact samples, which works because synthesis is
+  deterministic.
+- Right letters climb a pentatonic scale one new note per distinct letter (`RightStep`), always
+  landing on C6 on the last; misses fall one semitone each (`WrongStep`), landing on A2 on the
+  budget's last guess. One guess is one note, however many cells it fills. A hint plays the miss
+  it costs, then the letter it gives.
+- `go run ./.scratch/audition` plays every cue and a scripted word, and writes WAVs to
+  `.scratch/audition/out`. It is a local tool: nothing committed may depend on it.
+- Every cue must start without a click and have died away before it ends; the tests check the
+  first sample and the last 50 ms, not just the last sample, which the closing fade forces quiet.
