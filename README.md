@@ -71,8 +71,8 @@ is a soft wooden pluck, like a marimba, on a pentatonic scale:
 - The match's summary opens on a longer phrase if you won it, and a gentle
   close if not.
 
-Giving up is silent, as it was in the original. `Sound effects` in the ⋯
-menu turns it all off, and is remembered.
+Giving up sounds like the loss it is, though the original game gave up in
+silence. `Sound effects` in the ⋯ menu turns it all off, and is remembered.
 
 ## Controls
 

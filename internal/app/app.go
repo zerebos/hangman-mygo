@@ -215,8 +215,10 @@ func (a *App) showClue() {
 	}
 }
 
-// giveUp loses the word. The guard keeps a finished word from being scored
-// twice, because GiveUp refuses silently.
+// giveUp loses the word, and sounds like it: it ends the streak and scores
+// nothing, as losing does. (The original game gave up in silence.) The guard
+// keeps a finished word from being scored twice, because GiveUp refuses
+// silently.
 func (a *App) giveUp() {
 	if a.game.IsWordOver() {
 		return
@@ -224,6 +226,7 @@ func (a *App) giveUp() {
 	match := a.game.GiveUp()
 	a.record(game.Lost, match)
 	a.notice = bad(gaveUp)
+	a.play(sounds.Wood.WordLost(), 0)
 	a.persist()
 }
 

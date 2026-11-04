@@ -432,3 +432,14 @@ func TestHintsCluesAndFreshWordsHaveTheirOwnCues(t *testing.T) {
 		t.Error("the next word played no cue")
 	}
 }
+
+// Giving up is a loss, and sounds like one.
+func TestGivingUpSoundsLikeLosing(t *testing.T) {
+	cues := &recorder{}
+	a := New(settings.Settings{}, Options{Speaker: cues})
+	tt := ui.NewTester(a.View, 1000, 800)
+	tt.Key(ui.Cmd, ui.KeyN)
+	if !cues.heard(sounds.Wood.WordLost()) {
+		t.Error("giving up played no loss")
+	}
+}
