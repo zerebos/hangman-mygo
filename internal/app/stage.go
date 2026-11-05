@@ -140,7 +140,9 @@ func (a *App) wordBody(c *ui.Context, p palette) {
 			ui.Text(c, category).FontSize(11).Bold().TextColor(p.TextMuted).Padding(2, 10).
 				Radius(999).Border(1, p.Border)
 		}
-		row := ui.Row(c.Key("word")).Wrap().Justify(ui.Center).Gap(wordGap).Label(wordLabel(a.game.Word()))
+		cells := a.game.Cells()
+		scale := wordScale(a.stageRoom(c), cells)
+		row := ui.Row(c.Key("word")).Wrap().Justify(ui.Center).Gap(wordGap * scale).Label(wordLabel(a.game.Word()))
 		// A wrong guess shakes the word. Below one wrong guess there is no
 		// shake at all, so the row does not twitch as a word is dealt.
 		if wrong := a.game.WrongGuesses(); wrong > 0 {
@@ -152,12 +154,12 @@ func (a *App) wordBody(c *ui.Context, p palette) {
 			// against the word, so guessing the only E of a long word does
 			// not wait out the cells in front of it.
 			occurrence := 0
-			for i, cell := range a.game.Cells() {
+			for i, cell := range cells {
 				fresh := -1
 				if a.lastGuess != 0 && cell.Value == a.lastGuess && cell.Revealed {
 					fresh, occurrence = occurrence, occurrence+1
 				}
-				a.wordCell(c.Key(i), p, i, cell, fresh, lost)
+				a.wordCell(c.Key(i), p, i, cell, fresh, lost, scale)
 			}
 		})
 		// The clue opens a line for itself, so the rows under it move down
@@ -175,8 +177,9 @@ func (a *App) wordBody(c *ui.Context, p palette) {
 //
 // index is the cell's place in the word, which is its place in the win
 // reveal. fresh is its place among the cells the last guess turned over, or
-// -1 when the last guess did not touch it.
-func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fresh int, lost bool) {
+// -1 when the last guess did not touch it. scale is how much the word
+// shrinks to fit on one line (see wordScale).
+func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fresh int, lost bool, scale float32) {
 	missed := lost && cell.Guessable && !a.game.Guessed().Has(cell.Value)
 	glyph, rule := p.Text, p.TextMuted.Alpha(0.4)
 	switch {
@@ -185,7 +188,7 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 	case cell.Revealed:
 		rule = p.Text.Alpha(0.55)
 	}
-	width := float32(cellW)
+	width := cellW * scale
 	if !cell.Guessable {
 		// A space or a slash is not a blank to fill in.
 		width /= 2
@@ -201,7 +204,7 @@ func (a *App) wordCell(c *ui.Context, p palette, index int, cell game.Cell, fres
 		if cell.Revealed {
 			key = "shown"
 		}
-		g := ui.Text(c.Key(key), text).Height(cellH).FontSize(40).Bold().Font("monospace").TextColor(glyph)
+		g := ui.Text(c.Key(key), text).Height(cellH * scale).FontSize(40 * scale).Bold().Font("monospace").TextColor(glyph)
 		// Every cell the last guess filled flies in from its key, the n-th
 		// one from the key's n-th stand-in (see key). The rest of a won word
 		// resolves left to right as the flourish for finishing it.
@@ -243,12 +246,13 @@ func (a *App) feedback(c *ui.Context, p palette) {
 	})
 }
 
-// keyboard is the alphabet on two rows of thirteen.
+// keyboard is the alphabet in rows, two of thirteen wherever they fit.
 func (a *App) keyboard(c *ui.Context, p palette) {
+	perRow, _ := a.keyboardLayout(c)
 	ui.Column(c).Gap(keyGap).Children(func() {
-		for row := range 2 {
+		for start := 0; start < 26; start += perRow {
 			ui.Row(c).Gap(keyGap).Children(func() {
-				for i := row * keysPerRow; i < (row+1)*keysPerRow; i++ {
+				for i := start; i < min(start+perRow, 26); i++ {
 					a.key(c, p, rune('A'+i))
 				}
 			})
@@ -259,7 +263,7 @@ func (a *App) keyboard(c *ui.Context, p palette) {
 // key is one letter key. A key already played is a plain tile in the color
 // its guess earned rather than a button, so clicking it again does nothing.
 func (a *App) key(c *ui.Context, p palette, letter rune) {
-	keySize := a.keySize(c)
+	_, keySize := a.keyboardLayout(c)
 	label := string(letter)
 	state := keyStateOf(a.game, letter)
 	if state == keyAvailable {
@@ -319,7 +323,7 @@ func (a *App) actions(c *ui.Context, p palette) {
 			a.showClue()
 		}
 		if iconButton(c, "give-up", iconFlag, "Give up").
-			Tooltip("Give up on this word — counts as a loss (" + chord("N") + ")").Clicked() {
+			Tooltip("Give up on this word — counts as a loss (" + chord(giveUpLetter) + ")").Clicked() {
 			a.giveUp()
 		}
 	})
@@ -348,8 +352,7 @@ func (a *App) result(c *ui.Context, p palette) {
 	if won {
 		tone = p.Success
 	}
-	keySize := a.keySize(c)
-	ui.Column(c).Width(keysPerRow*keySize+(keysPerRow-1)*keyGap).Gap(14).Padding(18, 22).Radius(14).
+	ui.Column(c).Width(rowWidth(a.keyboardLayout(c))).Gap(14).Padding(18, 22).Radius(14).
 		Background(tone.Alpha(0.1)).Border(1, tone.Alpha(0.45)).Children(func() {
 		ui.Column(c).Gap(4).Children(func() {
 			ui.Text(c, headline).FontSize(20).Bold().TextColor(tone)

@@ -9,6 +9,11 @@ import (
 	"github.com/zerebos/hangman-mygo/internal/settings"
 )
 
+// chipsBelowW is the narrowest the bar holds the score chips in its middle.
+// A narrower window, which only a browser tab can be, puts them on a row of
+// their own under the bar.
+const chipsBelowW = 680
+
 // header is the one bar above the stage, and it is the window's title bar
 // too: the wordmark, where the words come from, the score as chips, and a
 // menu for everything else.
@@ -20,6 +25,8 @@ func (a *App) header(c *ui.Context, p palette) {
 		// Our own controls end the bar, flush with the window's corner.
 		right = 0
 	}
+	w, _ := c.Size()
+	chipsBelow := w < chipsBelowW
 	ui.Row(c).Height(height).Padding(0, right, 0, bar.Left+20).Gap(16).
 		AlignItems(ui.Center).DragWindow().Children(func() {
 		ui.Text(c, "Hangman!").FontSize(16).Bold()
@@ -27,16 +34,26 @@ func (a *App) header(c *ui.Context, p palette) {
 		// The score sits in the middle of the bar, between who you are and
 		// what you can do.
 		ui.Spacer(c)
-		ui.Row(c).Gap(8).Children(func() {
-			s := a.session.Stats()
-			chip(c, p, "Score", fmt.Sprint(a.session.MatchPoints()), p.Text)
-			chip(c, p, "Streak", fmt.Sprint(s.Streak), p.Success)
-			chip(c, p, "Best", fmt.Sprint(s.BestStreak), p.blue)
-			chip(c, p, "Word", fmt.Sprintf("%d/%d", a.game.WordNumber(), a.game.TotalWords()), p.TextMuted)
-		})
-		ui.Spacer(c)
+		if !chipsBelow {
+			a.chips(c, p)
+			ui.Spacer(c)
+		}
 		a.menu(c)
 		a.windowControls(c, p, height)
+	})
+	if chipsBelow {
+		ui.Row(c).Justify(ui.Center).Padding(0, 16, 8, 16).Children(func() { a.chips(c, p) })
+	}
+}
+
+// chips is the scoreboard: the match's score, the streaks and the word.
+func (a *App) chips(c *ui.Context, p palette) {
+	ui.Row(c).Gap(8).Children(func() {
+		s := a.session.Stats()
+		chip(c, p, "Score", fmt.Sprint(a.session.MatchPoints()), p.Text)
+		chip(c, p, "Streak", fmt.Sprint(s.Streak), p.Success)
+		chip(c, p, "Best", fmt.Sprint(s.BestStreak), p.blue)
+		chip(c, p, "Word", fmt.Sprintf("%d/%d", a.game.WordNumber(), a.game.TotalWords()), p.TextMuted)
 	})
 }
 
@@ -82,7 +99,7 @@ func (a *App) menu(c *ui.Context) {
 		if a.canOpenFiles() && m.Item("Open word list…").Shortcut(ui.Cmd, ui.KeyO).Chosen() {
 			a.openWordList()
 		}
-		if m.Item("Give up on this word").Shortcut(ui.Cmd, ui.KeyN).Disabled(a.game.IsWordOver()).Chosen() {
+		if m.Item("Give up on this word").Shortcut(ui.Cmd, giveUpKey).Disabled(a.game.IsWordOver()).Chosen() {
 			a.giveUp()
 		}
 		m.Separator()

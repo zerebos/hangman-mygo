@@ -25,12 +25,13 @@ func (a *App) summary(c *ui.Context, p palette) {
 	ui.Column(c).Fill().Center().Gap(28).Padding(24).Children(func() {
 		ui.Column(c).AlignItems(ui.Center).Gap(8).Children(func() {
 			eyebrow(c, p, "MATCH OVER · "+subtitle(g))
-			ui.Text(c, headline).FontSize(40).Bold().TextColor(tone)
+			ui.Text(c, headline).FontSize(40).Bold().TextAlign(ui.Center).TextColor(tone)
 			if n := matchSummary(g, a.session); n != nil {
-				ui.Text(c, n.text).FontSize(14).TextColor(p.TextMuted)
+				ui.Text(c, n.text).FontSize(14).TextAlign(ui.Center).TextColor(p.TextMuted)
 			}
 		})
-		ui.Row(c).Gap(12).Children(func() {
+		// Both rows wrap, centered, on a page too narrow for them.
+		ui.Row(c).FillWidth().Wrap().Justify(ui.Center).Gap(12).Children(func() {
 			tiles := []struct {
 				label  string
 				value  int
@@ -47,7 +48,7 @@ func (a *App) summary(c *ui.Context, p palette) {
 				countTile(c.Key(i), p, i, a.deal, tile.label, tile.value, tile.suffix, tile.color)
 			}
 		})
-		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).FillWidth().Wrap().Justify(ui.Center).Gap(10).AlignItems(ui.Center).Children(func() {
 			if a.canReplay() {
 				if ui.PrimaryButton(c.Key("again"), "Play "+subtitle(g)+" again").Padding(10, 22).
 					Tooltip("Start a new match (Enter)").Clicked() {

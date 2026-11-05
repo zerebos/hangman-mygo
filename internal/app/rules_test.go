@@ -439,3 +439,60 @@ func TestTheLegendLeavesOutOpeningAListWhereNoFileCanBeOpened(t *testing.T) {
 		}
 	}
 }
+
+// The keyboard keeps two rows of thirteen down to the smallest desktop
+// window with the drawer open, and splits into more rows only on a page
+// narrower than that, such as a phone's.
+func TestTheKeyboardSplitsIntoMoreRowsOnlyWhenTwoNoLongerFit(t *testing.T) {
+	cases := []struct {
+		room   float32
+		perRow int
+	}{
+		{720 - 2*stagePad, 13},           // the widest stage
+		{880 - drawerW - 2*stagePad, 13}, // the smallest window, drawer open
+		{600 - 2*stagePad, 13},
+		{480 - 2*stagePad, 9},
+		{390 - 2*stagePad, 9}, // a phone held upright
+		{340 - 2*stagePad, 7},
+	}
+	for _, tc := range cases {
+		perRow, size := keyLayout(tc.room)
+		if perRow != tc.perRow {
+			t.Errorf("room %v: %d keys a row, want %d", tc.room, perRow, tc.perRow)
+		}
+		if size < minKey || size > maxKey || rowWidth(perRow, size) > tc.room {
+			t.Errorf("room %v: keys of %v make a row %v wide", tc.room, size, rowWidth(perRow, size))
+		}
+	}
+	// Too narrow for any split: the smallest keys, the narrowest split.
+	if perRow, size := keyLayout(100); perRow != 7 || size != minKey {
+		t.Errorf("a tiny room: %d keys of %v", perRow, size)
+	}
+}
+
+func TestTheWordShrinksToFitOneLineBeforeItWraps(t *testing.T) {
+	word := func(n int) []game.Cell {
+		cells := make([]game.Cell, n)
+		for i := range cells {
+			cells[i].Guessable = true
+		}
+		return cells
+	}
+	if s := wordScale(672, word(8)); s != 1 {
+		t.Errorf("a short word on a desktop scales by %v", s)
+	}
+	// Eight letters at full size need 8*cellW + 7*wordGap = 422.
+	if s := wordScale(342, word(8)); s >= 1 || 422*s > 342.01 {
+		t.Errorf("eight letters on a phone scale by %v", s)
+	}
+	if s := wordScale(100, word(20)); s != minWordScale {
+		t.Errorf("a long word in a small room scales by %v", s)
+	}
+	// A space is half a cell: two words of four letters need 454, and
+	// nine letters 476.
+	spaced := word(9)
+	spaced[4].Guessable = false
+	if wordScale(454, spaced) != 1 || wordScale(454, word(9)) == 1 {
+		t.Error("a space counted as a whole cell")
+	}
+}

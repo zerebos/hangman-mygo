@@ -79,9 +79,9 @@ func TestEnterDealsTheNextWordOnlyOnceTheWordIsOver(t *testing.T) {
 	if a.game.WordNumber() != 1 {
 		t.Fatal("Enter dealt a word mid-game")
 	}
-	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(ui.Cmd, giveUpKey)
 	if !a.game.IsWordOver() || a.notice == nil || a.notice.text != gaveUp {
-		t.Fatalf("Ctrl+N did not give up: %+v", a.notice)
+		t.Fatalf("Ctrl+G did not give up: %+v", a.notice)
 	}
 	tt.Key(0, ui.KeyEnter)
 	if a.game.WordNumber() != 2 || a.game.IsWordOver() {
@@ -248,10 +248,10 @@ func chooseDifficulty(t *testing.T, a *App, tt *ui.Tester, label string) {
 func TestAMatchEndsOnItsSummaryAndEnterPlaysItAgain(t *testing.T) {
 	a, tt, _ := tester(t, settings.Settings{})
 	for a.game.WordNumber() < a.game.TotalWords() {
-		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Key(ui.Cmd, giveUpKey)
 		tt.Key(0, ui.KeyEnter)
 	}
-	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(ui.Cmd, giveUpKey)
 	tt.Advance(time.Second)
 	if a.summaryShown || !tt.HasText("See the match") {
 		t.Fatalf("the last word skipped its result: %q", tt.Texts())
@@ -300,7 +300,7 @@ func TestAWordListOfYourOwnCanBePlayedAgain(t *testing.T) {
 	tt := ui.NewTester(a.View, 1000, 800)
 	tt.Key(ui.Cmd, ui.KeyO)
 	for !a.game.IsMatchOver() {
-		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Key(ui.Cmd, giveUpKey)
 		// On the last word, Enter opens the summary.
 		tt.Key(0, ui.KeyEnter)
 	}
@@ -426,7 +426,7 @@ func TestHintsCluesAndFreshWordsHaveTheirOwnCues(t *testing.T) {
 	if cues.heard(sounds.Wood.NewWord()) {
 		t.Fatal("a fresh word's cue played before any word was dealt")
 	}
-	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(ui.Cmd, giveUpKey)
 	tt.Key(0, ui.KeyEnter)
 	if !cues.heard(sounds.Wood.NewWord()) {
 		t.Error("the next word played no cue")
@@ -438,7 +438,7 @@ func TestGivingUpSoundsLikeLosing(t *testing.T) {
 	cues := &recorder{}
 	a := New(settings.Settings{}, Options{Speaker: cues})
 	tt := ui.NewTester(a.View, 1000, 800)
-	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(ui.Cmd, giveUpKey)
 	if !cues.heard(sounds.Wood.WordLost()) {
 		t.Error("giving up played no loss")
 	}
@@ -483,10 +483,10 @@ func TestOpenWordListShowsOnlyWhereFilesCanBeOpened(t *testing.T) {
 			t.Errorf("picker %v: the legend lists Open a word list: %v", offered, got)
 		}
 		for a.game.WordNumber() < a.game.TotalWords() {
-			tt.Key(ui.Cmd, ui.KeyN)
+			tt.Key(ui.Cmd, giveUpKey)
 			tt.Key(0, ui.KeyEnter)
 		}
-		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Key(ui.Cmd, giveUpKey)
 		tt.Key(0, ui.KeyEnter)
 		tt.Advance(3 * time.Second)
 		if !a.summaryShown {

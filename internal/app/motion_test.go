@@ -158,7 +158,7 @@ func TestASecondWordDrawsItsPartsOnToo(t *testing.T) {
 	if !partWay() {
 		t.Fatal("the first word's wrong guess did not animate")
 	}
-	tt.Key(ui.Cmd, ui.KeyN)
+	tt.Key(ui.Cmd, giveUpKey)
 	tt.Key(0, ui.KeyEnter)
 	tt.Advance(2 * time.Second)
 	if !partWay() {
@@ -263,7 +263,7 @@ func TestALetterTypedAsTheKeyboardReturnsLandsWithTheWord(t *testing.T) {
 	a.freshWord(nil)
 	tt.Frame()
 	for a.game.Word() != "BANANA" {
-		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Key(ui.Cmd, giveUpKey)
 		tt.Advance(time.Second)
 		tt.Key(0, ui.KeyEnter)
 	}

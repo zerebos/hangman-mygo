@@ -129,6 +129,48 @@ func hintTooltipFor(g *game.Game) string {
 	return hintTooltipOver
 }
 
+// keyRowLengths are the ways the keyboard splits the alphabet, widest
+// first: two rows of thirteen, then three of nine (the last holding eight),
+// then four of seven, which fits a phone held upright.
+var keyRowLengths = []int{13, 9, 7}
+
+// keyLayout is how many keys go on a row in room wide, and how big each key
+// is: the widest split whose keys are still minKey or bigger, with the keys
+// as big as fit, up to maxKey. Where not even the narrowest split fits, it
+// uses that one at minKey and lets the row run over.
+func keyLayout(room float32) (perRow int, size float32) {
+	for _, n := range keyRowLengths {
+		size = (room - float32(n-1)*keyGap) / float32(n)
+		if size >= minKey {
+			return n, min(size, maxKey)
+		}
+	}
+	return keyRowLengths[len(keyRowLengths)-1], minKey
+}
+
+// wordScale is how much the word shrinks to fit room on one line: 1 when it
+// fits at full size, and never below minWordScale, where it wraps instead.
+// A cell that is not a letter (a space, a slash) is half a cell wide.
+func wordScale(room float32, cells []game.Cell) float32 {
+	if len(cells) == 0 {
+		return 1
+	}
+	natural := float32(len(cells)-1) * wordGap
+	for _, cell := range cells {
+		if cell.Guessable {
+			natural += cellW
+		} else {
+			natural += cellW / 2
+		}
+	}
+	return min(max(room/natural, minWordScale), 1)
+}
+
+// rowWidth is how wide a row of perRow keys of size is.
+func rowWidth(perRow int, size float32) float32 {
+	return float32(perRow)*size + float32(perRow-1)*keyGap
+}
+
 // shortcut is one entry of the keyboard legend.
 type shortcut int
 

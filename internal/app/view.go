@@ -9,19 +9,20 @@ import (
 // The stage's measurements.
 const (
 	// maxKey and minKey bound one square letter key, which sizes itself to
-	// the room the stage has, and keysPerRow puts the alphabet on two rows of
-	// thirteen.
-	maxKey     = 46
-	minKey     = 32
-	keyGap     = 6
-	keysPerRow = 13
+	// the room the stage has (see keyLayout).
+	maxKey = 46
+	minKey = 32
+	keyGap = 6
 	// cellW and cellH are one character of the word, which is the largest
 	// text in the window because it is the puzzle.
 	cellW   = 44
 	cellH   = 52
 	wordGap = 10
 	ruleH   = 3
-	pipSize = 10
+	// minWordScale is the smallest the word shrinks to fit on one line,
+	// before it wraps instead.
+	minWordScale = 0.6
+	pipSize      = 10
 	// stageW is the widest the stage grows, so the scene stays one
 	// composition on a wide window instead of spreading to its edges.
 	stageW  = 720
@@ -83,14 +84,27 @@ func (a *App) View(c *ui.Context) {
 	}
 }
 
-// keySize is how big one letter key is in this frame: as big as fits two
-// rows of thirteen across the stage, within minKey and maxKey.
-func (a *App) keySize(c *ui.Context) float32 {
+// stageRoom is how wide the stage's content can be in this frame, beside
+// the drawer.
+func (a *App) stageRoom(c *ui.Context) float32 {
 	w, _ := c.Size()
 	w -= drawerW * a.drawerShown
-	room := min(w, stageW) - 2*stagePad
-	return min(max((room-(keysPerRow-1)*keyGap)/keysPerRow, minKey), maxKey)
+	return min(w, stageW) - 2*stagePad
 }
+
+// keyboardLayout is how many letter keys go on a row in this frame, and how
+// big each one is.
+func (a *App) keyboardLayout(c *ui.Context) (perRow int, size float32) {
+	return keyLayout(a.stageRoom(c))
+}
+
+// giveUpKey gives up on the word with Cmd (Ctrl). It is G for "give up"
+// rather than N, because browsers keep Ctrl+N for a new window and never let
+// a page have it.
+const (
+	giveUpKey    = ui.KeyG
+	giveUpLetter = "G"
+)
 
 // handleKeys turns the keyboard into guesses and shortcuts. mygo holds the
 // window's shortcuts back while a dialog is open, so a letter typed at the
@@ -102,7 +116,7 @@ func (a *App) handleKeys(c *ui.Context) {
 	if c.Shortcut(ui.Cmd, ui.KeyL) {
 		a.showClue()
 	}
-	if c.Shortcut(ui.Cmd, ui.KeyN) {
+	if c.Shortcut(ui.Cmd, giveUpKey) {
 		a.giveUp()
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyO) {
@@ -143,7 +157,7 @@ func (s shortcut) keys() string {
 	case shortcutClue:
 		return chord("L")
 	case shortcutChangeWord:
-		return chord("N")
+		return chord(giveUpLetter)
 	case shortcutOpenWordList:
 		return chord("O")
 	}
