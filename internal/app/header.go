@@ -79,7 +79,7 @@ func (a *App) menu(c *ui.Context) {
 	ui.Button(c.Key("menu"), "").Label("More").Tooltip("More").Children(func() {
 		ui.Icon(c, iconDots)
 	}).PopoverMenuButton(func(m *ui.Menu) {
-		if m.Item("Open word list…").Shortcut(ui.Cmd, ui.KeyO).Chosen() {
+		if a.canOpenFiles() && m.Item("Open word list…").Shortcut(ui.Cmd, ui.KeyO).Chosen() {
 			a.openWordList()
 		}
 		if m.Item("Give up on this word").Shortcut(ui.Cmd, ui.KeyN).Disabled(a.game.IsWordOver()).Chosen() {

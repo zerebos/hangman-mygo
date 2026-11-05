@@ -168,24 +168,35 @@ type legendEntry struct {
 	live     bool
 }
 
-// shortcutLegend is what the legend lists for the game in hand. The four
-// standing shortcuts are always there. Enter is listed only while it does
-// something, under the name of what it does: the next word, the match's
-// summary once the last word is over, and a new match from the summary when
-// there is something to replay.
-func shortcutLegend(g *game.Game, clueShown, summaryShown, canReplay bool) []legendEntry {
+// legendState is what the legend depends on besides the game.
+type legendState struct {
+	clueShown    bool
+	summaryShown bool
+	canReplay    bool
+	canOpenFiles bool
+}
+
+// shortcutLegend is what the legend lists for the game in hand. The standing
+// shortcuts are always there, and Open a word list with them wherever the
+// window can ask for a file. Enter is listed only while it does something,
+// under the name of what it does: the next word, the match's summary once
+// the last word is over, and a new match from the summary when there is
+// something to replay.
+func shortcutLegend(g *game.Game, st legendState) []legendEntry {
 	hints := []legendEntry{
 		{shortcutHint, g.CanHint()},
-		{shortcutClue, canShowClue(g, clueShown)},
+		{shortcutClue, canShowClue(g, st.clueShown)},
 		{shortcutChangeWord, !g.IsWordOver()},
-		{shortcutOpenWordList, true},
+	}
+	if st.canOpenFiles {
+		hints = append(hints, legendEntry{shortcutOpenWordList, true})
 	}
 	switch {
 	case g.IsWordOver() && !g.IsMatchOver():
 		hints = append(hints, legendEntry{shortcutNextWord, true})
-	case g.IsMatchOver() && !summaryShown:
+	case g.IsMatchOver() && !st.summaryShown:
 		hints = append(hints, legendEntry{shortcutSeeMatch, true})
-	case g.IsMatchOver() && canReplay:
+	case g.IsMatchOver() && st.canReplay:
 		hints = append(hints, legendEntry{shortcutPlayAgain, true})
 	}
 	return hints

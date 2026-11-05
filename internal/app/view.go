@@ -166,7 +166,13 @@ func eyebrow(c *ui.Context, p palette, text string) ui.Element {
 // shortcut to someone who already suspects there is one.
 func (a *App) shortcutBar(c *ui.Context, p palette) {
 	ui.Row(c).Wrap().Justify(ui.Center).Gap(18).Padding(8, 20).Opacity(0.85).Children(func() {
-		for _, h := range shortcutLegend(a.game, a.clueShown, a.summaryShown, a.canReplay()) {
+		legend := shortcutLegend(a.game, legendState{
+			clueShown:    a.clueShown,
+			summaryShown: a.summaryShown,
+			canReplay:    a.canReplay(),
+			canOpenFiles: a.canOpenFiles(),
+		})
+		for _, h := range legend {
 			entry := ui.Row(c).Gap(6).AlignItems(ui.Center)
 			if !h.live {
 				entry.Opacity(0.4)

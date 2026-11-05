@@ -77,7 +77,8 @@ func legendOf(g *game.Game, clueShown bool) map[shortcut]bool {
 
 func legendWith(g *game.Game, clueShown, summaryShown bool) map[shortcut]bool {
 	out := map[shortcut]bool{}
-	for _, e := range shortcutLegend(g, clueShown, summaryShown, g.Difficulty() != game.NoDifficulty) {
+	st := legendState{clueShown: clueShown, summaryShown: summaryShown, canReplay: g.Difficulty() != game.NoDifficulty, canOpenFiles: true}
+	for _, e := range shortcutLegend(g, st) {
 		out[e.shortcut] = e.live
 	}
 	return out
@@ -141,7 +142,7 @@ func TestAFinishedMatchOffersEnterUnderTheNameOfWhatItDoes(t *testing.T) {
 		t.Errorf("the summary offers %v", got)
 	}
 	// Nothing to replay, nothing offered.
-	for _, e := range shortcutLegend(g, false, true, false) {
+	for _, e := range shortcutLegend(g, legendState{summaryShown: true, canOpenFiles: true}) {
 		if e.shortcut == shortcutPlayAgain {
 			t.Error("Play again offered with nothing to replay")
 		}
@@ -427,5 +428,14 @@ func TestTheHintTooltipSaysTheLastLetterIsYours(t *testing.T) {
 	}
 	if live := legendOf(g, false)[shortcutHint]; live {
 		t.Error("the legend offers a hint for the last letter")
+	}
+}
+
+func TestTheLegendLeavesOutOpeningAListWhereNoFileCanBeOpened(t *testing.T) {
+	g := clued(t)
+	for _, e := range shortcutLegend(g, legendState{}) {
+		if e.shortcut == shortcutOpenWordList {
+			t.Error("the legend offers a word list with no way to open one")
+		}
 	}
 }

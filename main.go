@@ -5,7 +5,6 @@ package main
 
 import (
 	"log"
-	"runtime"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -13,7 +12,6 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"github.com/zerebos/hangman-mygo/internal/app"
-	"github.com/zerebos/hangman-mygo/internal/settings"
 	"github.com/zerebos/hangman-mygo/internal/sounds"
 )
 
@@ -31,39 +29,16 @@ func (speaker) Play(samples []float32, delay time.Duration) {
 	time.AfterFunc(delay, func() { sound.Play() })
 }
 
+// Where the settings live, how to ask for a file, and who draws the window
+// controls differ between desktops and browsers: see platform_desktop.go and
+// platform_web.go.
 func main() {
-	path := settings.Path()
 	var win *mygo.Window
-
-	// The native picker blocks until the user answers, so it runs on its own
-	// goroutine, and the file is handed back to the view on the main thread.
-	pickFile := func(done func(string, error)) {
-		go func() {
-			paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-				Parent: win,
-				Title:  "Choose a word list (.txt) or a word pack (.json)",
-				Filters: []mygo.FileFilter{
-					{Name: "Word lists and packs", Extensions: []string{"txt", "json"}},
-					{Name: "All files", Extensions: []string{"*"}},
-				},
-			})
-			if err != nil || len(paths) == 0 {
-				return
-			}
-			contents, err := app.ReadFile(paths[0])
-			win.Update(func() { done(contents, err) })
-		}()
-	}
-
-	game := app.New(settings.Load(path), app.Options{
-		SettingsPath: path,
-		Speaker:      speaker{},
-		PickFile:     pickFile,
+	game := app.New(loadSettings(), app.Options{
+		Save:     saveSettings,
+		Speaker:  speaker{},
+		PickFile: filePicker(func() *mygo.Window { return win }),
 	})
-
-	// The header draws its own window controls at its full height, except
-	// on macOS, whose traffic lights stay as the system draws them.
-	ownControls := runtime.GOOS != "darwin"
 
 	mygo.App.WhenReady(func() {
 		win = mygo.NewWindow(mygo.WindowOptions{
@@ -74,10 +49,10 @@ func main() {
 			MinHeight:         660,
 			StateKey:          "main",
 			TitleBarStyle:     mygo.TitleBarHidden,
-			HideWindowButtons: ownControls,
+			HideWindowButtons: drawsOwnControls,
 			Content:           ui.View(game.View),
 		})
-		if ownControls {
+		if drawsOwnControls {
 			game.SetWindow(win)
 		}
 	})

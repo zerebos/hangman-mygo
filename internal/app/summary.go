@@ -62,7 +62,7 @@ func (a *App) summary(c *ui.Context, p palette) {
 					a.setDifficulty(d)
 				}
 			}
-			if ui.Button(c.Key("open"), "Open word list…").Padding(10, 16).Clicked() {
+			if a.canOpenFiles() && ui.Button(c.Key("open"), "Open word list…").Padding(10, 16).Clicked() {
 				a.openWordList()
 			}
 		})

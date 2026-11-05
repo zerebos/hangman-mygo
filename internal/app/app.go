@@ -24,17 +24,19 @@ type Speaker interface {
 // phrase comes in, so the letter's own sound is heard first.
 const wordEndDelay = 160 * time.Millisecond
 
-// Options is what the window needs from outside: where the settings live,
+// Options is what the window needs from outside: where the settings go,
 // how to play sounds, and how to ask the user for a file.
 type Options struct {
-	// SettingsPath is where settings.json is written. Empty writes nothing,
-	// which is what tests use.
-	SettingsPath string
+	// Save keeps the settings for the next run: settings.json on a desktop,
+	// the page's storage in a browser. Nil keeps nothing, which is what
+	// tests use.
+	Save func(settings.Settings)
 	// Speaker plays the sound cues; nil is silent.
 	Speaker Speaker
 	// PickFile asks the user for a word list and calls done with its
 	// contents on the main thread, or never when the user cancels. Nil
-	// leaves Open word list doing nothing.
+	// means there is no way to ask, as in a browser, and the window offers
+	// no Open word list.
 	PickFile func(done func(contents string, err error))
 }
 
@@ -111,7 +113,9 @@ func (a *App) persist() {
 }
 
 func (a *App) save() {
-	a.settings.Save(a.opts.SettingsPath)
+	if a.opts.Save != nil {
+		a.opts.Save(a.settings)
+	}
 }
 
 // guess guesses a letter, typed or clicked.
@@ -328,9 +332,12 @@ func (a *App) setDifficulty(d game.Difficulty) {
 	a.persist()
 }
 
+// canOpenFiles is whether the window can ask for a word list.
+func (a *App) canOpenFiles() bool { return a.opts.PickFile != nil }
+
 // openWordList asks for a file and loads it.
 func (a *App) openWordList() {
-	if a.opts.PickFile == nil {
+	if !a.canOpenFiles() {
 		return
 	}
 	a.opts.PickFile(a.loadWordList)

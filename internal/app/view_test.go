@@ -20,7 +20,7 @@ import (
 func tester(t *testing.T, s settings.Settings) (*App, *ui.Tester, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "settings.json")
-	a := New(s, Options{SettingsPath: path})
+	a := New(s, Options{Save: func(s settings.Settings) { s.Save(path) }})
 	return a, ui.NewTester(a.View, 1000, 800), path
 }
 
@@ -467,5 +467,33 @@ func TestPlayedKeysSayWhatTheirGuessFound(t *testing.T) {
 	}
 	if !a.game.IsWordOver() {
 		t.Error("Give up did not give up")
+	}
+}
+
+// A window with no way to ask for a file, as in a browser, offers no Open
+// word list anywhere, and one that can offers it on the board and on the
+// summary alike.
+func TestOpenWordListShowsOnlyWhereFilesCanBeOpened(t *testing.T) {
+	pick := func(done func(string, error)) {}
+	for _, picker := range []func(func(string, error)){nil, pick} {
+		a := New(settings.Settings{}, Options{PickFile: picker})
+		tt := ui.NewTester(a.View, 1000, 800)
+		offered := picker != nil
+		if got := tt.HasText(shortcutOpenWordList.label()); got != offered {
+			t.Errorf("picker %v: the legend lists Open a word list: %v", offered, got)
+		}
+		for a.game.WordNumber() < a.game.TotalWords() {
+			tt.Key(ui.Cmd, ui.KeyN)
+			tt.Key(0, ui.KeyEnter)
+		}
+		tt.Key(ui.Cmd, ui.KeyN)
+		tt.Key(0, ui.KeyEnter)
+		tt.Advance(3 * time.Second)
+		if !a.summaryShown {
+			t.Fatalf("picker %v: no summary", offered)
+		}
+		if got := tt.HasText("Open word list…"); got != offered {
+			t.Errorf("picker %v: the summary offers Open word list: %v", offered, got)
+		}
 	}
 }
