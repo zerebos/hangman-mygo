@@ -60,7 +60,7 @@ type App struct {
 	// clueShown is whether the word's clue is on screen. It is the view's
 	// own, because reading a clue changes nothing that is scored.
 	clueShown bool
-	// showStats is whether the lifetime stats fold out under the board.
+	// showStats is whether the lifetime stats drawer is open.
 	showStats bool
 	// window is the window the header draws its controls for, or nil.
 	window Window

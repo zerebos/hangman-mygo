@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"github.com/zerebos/hangman-mygo/internal/settings"
+	"github.com/zerebos/hangman-mygo/internal/stats"
 )
 
 // openStats opens the stats drawer on a window of w by h, once anything the
@@ -75,5 +76,60 @@ func TestTheShadeLiesUnderTheDrawer(t *testing.T) {
 	}
 	if narrow, wide := panel(390), panel(1000); narrow != wide {
 		t.Errorf("the drawer is %v over a phone's stage and %v beside a wide one", narrow, wide)
+	}
+}
+
+// statsTester is a window whose lifetime tally has 500 points and 7 words
+// won, with the drawer shut.
+func statsTester(t *testing.T) (*App, *ui.Tester) {
+	t.Helper()
+	a, tt, _ := tester(t, settings.Settings{Stats: stats.Stats{Points: 500, WordsWon: 7, WordsLost: 3}})
+	tt.Frame()
+	return a, tt
+}
+
+// The drawer's numbers count up from zero as it opens, every time it opens.
+func TestTheDrawersNumbersCountUpAsItOpens(t *testing.T) {
+	a, tt := statsTester(t)
+	for open := range 2 {
+		a.showStats = true
+		tt.Frame()
+		tt.Advance(statCountDelay + statCount/3)
+		if shows(tt, "500") || shows(tt, "70%") {
+			t.Errorf("opening %d: the numbers were there at once: %q", open, tt.Texts())
+		}
+		tt.Advance(2 * time.Second)
+		if !shows(tt, "500") || !shows(tt, "70%") || !shows(tt, "7") {
+			t.Errorf("opening %d: the numbers never got there: %q", open, tt.Texts())
+		}
+		a.showStats = false
+		tt.Frame()
+		tt.Advance(time.Second)
+	}
+}
+
+// With reduced motion the numbers are there as the drawer opens.
+func TestReducedMotionShowsTheDrawersNumbersAtOnce(t *testing.T) {
+	a, tt := statsTester(t)
+	tt.SetPreferences(ui.Preferences{ReduceMotion: true})
+	a.showStats = true
+	tt.Frame()
+	tt.Advance(statCountDelay)
+	if !shows(tt, "500") || !shows(tt, "70%") {
+		t.Errorf("texts %q", tt.Texts())
+	}
+}
+
+// A number that changes once counted shows its new value, rather than
+// counting up from zero again.
+func TestAWordWonWithTheDrawerOpenAddsToItsNumbers(t *testing.T) {
+	a, tt := statsTester(t)
+	a.showStats = true
+	tt.Frame()
+	tt.Advance(2 * time.Second)
+	winWord(a, tt)
+	tt.Advance(2 * time.Second)
+	if !shows(tt, "8") {
+		t.Errorf("words won did not go to 8: %q", tt.Texts())
 	}
 }

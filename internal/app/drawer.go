@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 
@@ -53,25 +54,25 @@ func (a *App) drawerPanel(c *ui.Context, p palette, width float32) {
 		// The tally scrolls between the title and Reset stats, which stay
 		// put, because a phone held sideways is shorter than the tally.
 		ui.Scroll(c.Key("tally")).Grow(1).Gap(16).Children(func() {
-			tiles := [][3]string{
-				{fmt.Sprint(s.Points), "POINTS", "text"},
-				{percent(s.WinRate()), "WIN RATE", "text"},
-				{fmt.Sprint(s.WordsWon), "WORDS WON", "good"},
-				{fmt.Sprint(s.WordsLost), "WORDS LOST", "bad"},
-				{fmt.Sprint(s.Streak), "STREAK", "good"},
-				{fmt.Sprint(s.BestStreak), "BEST STREAK", "blue"},
+			tiles := []statTile{
+				{"POINTS", counted(s.Points), p.Text},
+				{"WIN RATE", func(t float32) string { return percent(s.WinRate() * t) }, p.Text},
+				{"WORDS WON", counted(s.WordsWon), p.Success},
+				{"WORDS LOST", counted(s.WordsLost), p.Danger},
+				{"STREAK", counted(s.Streak), p.Success},
+				{"BEST STREAK", counted(s.BestStreak), p.blue},
+				{"MATCHES W / L / T", func(t float32) string {
+					return counted(s.MatchesWon)(t) + " / " + counted(s.MatchesLost)(t) + " / " + counted(s.MatchesTied)(t)
+				}, p.Text},
 			}
-			colors := map[string]ui.Color{"text": p.Text, "good": p.Success, "bad": p.Danger, "blue": p.blue}
+			// Two tiles a row, and the matches on a row of their own.
 			for i := 0; i < len(tiles); i += 2 {
 				ui.Row(c).Gap(12).Children(func() {
-					for _, tile := range tiles[i : i+2] {
-						stat(c, p, tile[0], tile[1], colors[tile[2]])
+					for j := i; j < min(i+2, len(tiles)); j++ {
+						stat(c, p, j, tiles[j])
 					}
 				})
 			}
-			ui.Row(c).Children(func() {
-				stat(c, p, fmt.Sprintf("%d / %d / %d", s.MatchesWon, s.MatchesLost, s.MatchesTied), "MATCHES W / L / T", p.Text)
-			})
 			ui.Box(c).FillWidth().Height(1).Background(p.Border)
 			ui.Column(c).Gap(6).Children(func() {
 				breakdownRow(c, func() { eyebrow(c, p, "LEVEL") }, func() {
@@ -111,11 +112,43 @@ func (a *App) drawerPanel(c *ui.Context, p palette, width float32) {
 	})
 }
 
-// stat is one number over its caption.
-func stat(c *ui.Context, p palette, value, label string, color ui.Color) {
-	ui.Column(c).Grow(1).Basis(0).Gap(2).Padding(10, 12).Radius(10).Background(p.Surface).Children(func() {
-		ui.Text(c, value).FontSize(20).Bold().TextColor(color).SingleLine()
-		eyebrow(c, p, label)
+// statTile is one number of the drawer: its caption, its value as it reads
+// t of the way through counting up (from 0 to 1), and its color.
+type statTile struct {
+	label string
+	value func(t float32) string
+	color ui.Color
+}
+
+// counted is a number that counts up from zero.
+func counted[N uint32 | uint64](n N) func(t float32) string {
+	return func(t float32) string { return fmt.Sprint(N(float64(n)*float64(t) + 0.5)) }
+}
+
+// Counting up, as the drawer opens: how long one tile takes, and how long
+// each waits after the one before it, after statCountDelay for the drawer to
+// start sliding in.
+const (
+	statCount      = 700 * time.Millisecond
+	statStagger    = 80 * time.Millisecond
+	statCountDelay = 120 * time.Millisecond
+)
+
+// stat is one number over its caption. Its number counts up from zero each
+// time the drawer opens, a beat after the tile before it, as the summary's
+// do: a shut drawer is not built, so each opening builds the tiles afresh
+// and their count starts over. Once counted, a number that changes rolls to
+// its new value, as the header's chips do.
+func stat(c *ui.Context, p palette, index int, tile statTile) {
+	box := ui.Column(c.Key(tile.label)).Grow(1).Basis(0).Gap(2).Padding(10, 12).Radius(10).Background(p.Surface)
+	t := box.Keyframes("count", []ui.Keyframe{{Value: 0}, {At: statCount, Value: 1, Ease: ui.EaseOut}},
+		ui.KeyframeOptions{Delay: statCountDelay + time.Duration(index)*statStagger})
+	box.Children(func() {
+		value := ui.Text(c.Key("value"), tile.value(t)).FontSize(20).Bold().TextColor(tile.color).SingleLine()
+		if t >= 1 {
+			value.ContentTransition(ui.ContentTransition{Numeric: true})
+		}
+		eyebrow(c, p, tile.label)
 	})
 }
 

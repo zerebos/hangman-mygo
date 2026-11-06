@@ -83,8 +83,9 @@ Almost everything moves:
 - A win that beats your best streak makes the Best chip pop as it takes the
   new record, a moment after the win.
 - The lifetime stats open as a drawer that pushes the stage aside, the keys
-  shrinking in step with it. On a page too narrow to share, such as a phone,
-  the drawer slides over the stage instead, and tapping beside it closes it.
+  shrinking in step with it. Its numbers count up one after another as it
+  opens. On a page too narrow to share, such as a phone, the drawer slides
+  over the stage instead, and tapping beside it closes it.
 - A match ends on its own summary, its numbers counting up one after another,
   with confetti when you won it.
 - Switching between light and dark fades the whole window from one theme to
