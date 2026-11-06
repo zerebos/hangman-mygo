@@ -25,11 +25,19 @@ func (a *App) header(c *ui.Context, p palette) {
 		// Our own controls end the bar, flush with the window's corner.
 		right = 0
 	}
-	w, _ := c.Size()
+	w, h := c.Size()
 	chipsBelow := w < chipsBelowW
+	wordmarkShown := true
+	// A short page has no height to spare for a row of chips, so when it is
+	// side by side they stay in the bar, and the wordmark makes room.
+	if chipsBelow && boardShapeFor(w, h) == boardSideBySide {
+		chipsBelow, wordmarkShown = false, false
+	}
 	ui.Row(c).Height(height).Padding(0, right, 0, bar.Left+20).Gap(16).
 		AlignItems(ui.Center).DragWindow().Children(func() {
-		ui.Text(c, "Hangman!").FontSize(16).Bold()
+		if wordmarkShown {
+			ui.Text(c, "Hangman!").FontSize(16).Bold()
+		}
 		a.difficultyMenu(c)
 		// The score sits in the middle of the bar, between who you are and
 		// what you can do.

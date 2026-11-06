@@ -25,29 +25,63 @@ func (a *App) stage(c *ui.Context, p palette) {
 	})
 }
 
-// board is the game itself.
+// board is the game itself, in the shape the window has room for (see
+// boardShapeFor).
 func (a *App) board(c *ui.Context, p palette) {
-	ui.Column(c).Fill().AlignItems(ui.Center).Padding(4, stagePad, 12).Children(func() {
-		ui.Column(c).FillHeight().FillWidth().MaxWidth(stageW).AlignItems(ui.Center).Gap(10).Children(func() {
-			a.drawGallows(c, p)
-			a.pips(c, p)
-			a.missed(c, p)
-			a.word(c, p)
-			a.feedback(c, p)
-			// The keyboard and the result card take turns in one slot. The
-			// one going folds away under the one coming, and the slot springs
-			// to the new one's height, which carries the rows above with it.
-			a.glideOn(ui.Column(c.Key("bottom")).AlignItems(ui.Center)).Children(func() {
-				if a.game.IsWordOver() {
-					ui.Column(c.Key("result")).Transition(cardSwap).Children(func() { a.result(c, p) })
-				} else {
-					ui.Column(c.Key("keys")).AlignItems(ui.Center).Gap(keyGap).Transition(keysSwap).Children(func() {
-						a.keyboard(c, p)
-						a.actions(c, p)
-					})
-				}
+	w, h := c.Size()
+	switch boardShapeFor(w, h) {
+	case boardSideBySide:
+		ui.Row(c).Fill().Justify(ui.Center).Padding(4, stagePad, 8).Gap(sideGap).Children(func() {
+			gallowsW, _ := sideColumns(w)
+			ui.Column(c).Width(gallowsW).FillHeight().AlignItems(ui.Center).Gap(10).Children(func() {
+				a.scaffold(c, p)
+			})
+			ui.Column(c).Width(a.stageRoom(c)).FillHeight().Justify(ui.Center).AlignItems(ui.Center).Gap(10).
+				Children(func() { a.puzzle(c, p) })
+		})
+	case boardScrolled:
+		// A scroll has no height to give, so the gallows keeps its least.
+		ui.Scroll(c.Key("board-scroll")).Fill().AlignItems(ui.Center).Padding(4, stagePad, 12).Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(stageW).AlignItems(ui.Center).Gap(10).Children(func() {
+				a.scaffold(c, p)
+				a.puzzle(c, p)
 			})
 		})
+	default:
+		ui.Column(c).Fill().AlignItems(ui.Center).Padding(4, stagePad, 12).Children(func() {
+			ui.Column(c).FillHeight().FillWidth().MaxWidth(stageW).AlignItems(ui.Center).Gap(10).Children(func() {
+				a.scaffold(c, p)
+				a.puzzle(c, p)
+			})
+		})
+	}
+}
+
+// scaffold is the gallows and what it has cost so far: the pips and the
+// missed letters.
+func (a *App) scaffold(c *ui.Context, p palette) {
+	a.drawGallows(c, p)
+	a.pips(c, p)
+	a.missed(c, p)
+}
+
+// puzzle is the word and what plays it: the feedback line, and the keyboard
+// or the result card.
+func (a *App) puzzle(c *ui.Context, p palette) {
+	a.word(c, p)
+	a.feedback(c, p)
+	// The keyboard and the result card take turns in one slot. The one
+	// going folds away under the one coming, and the slot springs to the new
+	// one's height, which carries the rows above with it.
+	a.glideOn(ui.Column(c.Key("bottom")).AlignItems(ui.Center)).Children(func() {
+		if a.game.IsWordOver() {
+			ui.Column(c.Key("result")).Transition(cardSwap).Children(func() { a.result(c, p) })
+		} else {
+			ui.Column(c.Key("keys")).AlignItems(ui.Center).Gap(keyGap).Transition(keysSwap).Children(func() {
+				a.keyboard(c, p)
+				a.actions(c, p)
+			})
+		}
 	})
 }
 
@@ -55,7 +89,9 @@ func (a *App) board(c *ui.Context, p palette) {
 // with the count of guesses left beside them.
 func (a *App) pips(c *ui.Context, p palette) {
 	wrong, budget := a.game.WrongGuesses(), a.game.GuessBudget()
-	a.glideOn(ui.Row(c.Key("pips")).AlignItems(ui.Center).Gap(14)).Children(func() {
+	// It wraps the count under the pips in the narrow gallows column of a
+	// short page.
+	a.glideOn(ui.Row(c.Key("pips")).FillWidth().Wrap().Justify(ui.Center).AlignItems(ui.Center).Gap(14)).Children(func() {
 		ui.Row(c).Gap(6).Children(func() {
 			for step := range budget {
 				fill := p.TextMuted.Alpha(0.25)
@@ -101,9 +137,10 @@ func (a *App) pips(c *ui.Context, p palette) {
 
 // missed is the letters guessed wrong, as small tiles under the gallows. A
 // wrong guess flies here from its key, and the tiles already here make room.
-// The row keeps its height while empty, so the first miss moves nothing.
+// The row keeps its height while empty, so the first miss moves nothing. It
+// wraps onto a second row in the narrow gallows column of a short page.
 func (a *App) missed(c *ui.Context, p palette) {
-	a.glideOn(ui.Row(c.Key("missed")).Height(26).Gap(6).AlignItems(ui.Center)).Children(func() {
+	a.glideOn(ui.Row(c.Key("missed")).FillWidth().MinHeight(26).Gap(6).Wrap().Justify(ui.Center).AlignItems(ui.Center)).Children(func() {
 		for r := 'A'; r <= 'Z'; r++ {
 			if keyStateOf(a.game, r) != keyWrong {
 				continue

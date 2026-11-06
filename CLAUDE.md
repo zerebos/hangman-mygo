@@ -23,7 +23,7 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
   can use (`keysTaught`) until a key is pressed. Check both with `go vet ./... && GOOS=js GOARCH=wasm go vet .`.
 - Browsers never give a page Ctrl+N, Ctrl+T or Ctrl+W, so no shortcut may use them.
 - A tab can be any size, below the desktop window's minimum, so anything sized from the
-  window needs a narrow fallback (`keyLayout`, `wordScale`, `chipsBelowW`, `drawerCoversW`).
+  window needs a narrow fallback (`keyLayout`, `wordScale`, `chipsBelowW`, `drawerCoversW`, `boardShapeFor`).
 - Only `internal/app` and the `main` package import mygo. `words`, `game`, `stats`, `settings`,
   `gallows` and `sounds` stay plain Go so their tests need no window and no audio device.
 - Absent values are zero values: `game.NoDifficulty`, `game.InPlay`, `game.MatchRunning`, an empty

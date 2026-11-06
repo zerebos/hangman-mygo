@@ -489,10 +489,10 @@ func TestTheWordShrinksToFitOneLineBeforeItWraps(t *testing.T) {
 		t.Errorf("a long word in a small room scales by %v", s)
 	}
 	// A space is half a cell: two words of four letters need 454, and
-	// nine letters 476.
+	// nine letters 476, each with a pixel to spare.
 	spaced := word(9)
 	spaced[4].Guessable = false
-	if wordScale(454, spaced) != 1 || wordScale(454, word(9)) == 1 {
+	if wordScale(455, spaced) != 1 || wordScale(455, word(9)) == 1 {
 		t.Error("a space counted as a whole cell")
 	}
 }

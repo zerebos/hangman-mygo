@@ -164,7 +164,9 @@ func wordScale(room float32, cells []game.Cell) float32 {
 			natural += cellW / 2
 		}
 	}
-	return min(max(room/natural, minWordScale), 1)
+	// A pixel to spare, because a row exactly as wide as its room can wrap
+	// on rounding.
+	return min(max((room-1)/natural, minWordScale), 1)
 }
 
 // rowWidth is how wide a row of perRow keys of size is.
@@ -383,3 +385,39 @@ func saveMatch(g *game.Game, s *stats.Session) *settings.SavedMatch {
 // with a record worth marking. The very first win sets the first best, but
 // beats nothing, so only a best that was already there can be beaten.
 func isNewBest(before, after uint32) bool { return before > 0 && after > before }
+
+// boardShape is how the board lays out its parts for the window's size.
+type boardShape int
+
+const (
+	// boardStacked is the gallows over the word over the keyboard, in one
+	// column, as every desktop window shows it.
+	boardStacked boardShape = iota
+	// boardSideBySide puts the gallows beside the word and the keyboard,
+	// for a page too short to stack them but wide enough to share, as a
+	// phone held sideways is.
+	boardSideBySide
+	// boardScrolled stacks the board in a column that scrolls, for a page
+	// too short to stack it and too narrow to share.
+	boardScrolled
+)
+
+// sideColumns is how wide the two columns of a side-by-side board are on a
+// window w wide: the gallows column, and the room left for the word and the
+// keyboard.
+func sideColumns(w float32) (gallows, room float32) {
+	total := min(w, sideStageW) - 2*stagePad - sideGap
+	gallows = min(max(total*gallowsShare, minGallowsColW), maxGallowsColW)
+	return gallows, total - gallows
+}
+
+// boardShapeFor is the board's shape on a window of w by h.
+func boardShapeFor(w, h float32) boardShape {
+	switch {
+	case h >= shortH:
+		return boardStacked
+	case w >= sideBySideW:
+		return boardSideBySide
+	}
+	return boardScrolled
+}

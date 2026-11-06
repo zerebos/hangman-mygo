@@ -31,6 +31,22 @@ const (
 	// stage. A narrower one, which only a browser tab can be, would leave
 	// the stage a sliver beside it, so the drawer covers the stage instead.
 	drawerCoversW = 760
+	// shortH is the shortest window the board stacks in one column, which
+	// needs about 530 px under the header. A shorter one, which only a
+	// browser tab can be, lays it out side by side or scrolls it (see
+	// boardShapeFor).
+	shortH = 600
+	// sideBySideW is the narrowest short window the board lays out side by
+	// side in, which leaves the keyboard room for nine keys a row, so three
+	// rows of keys and the actions fit under the word. The gallows column takes gallowsShare of the room, between
+	// minGallowsColW and maxGallowsColW, with sideGap between the columns,
+	// and the two together are at most sideStageW wide.
+	sideBySideW    = 620
+	gallowsShare   = 0.36
+	minGallowsColW = 200
+	maxGallowsColW = 270
+	sideGap        = 24
+	sideStageW     = 960
 	// stagePad is the room left and right of the stage.
 	stagePad = 24
 	// labelColW is the label column of the per-difficulty breakdown.
@@ -95,7 +111,12 @@ func (a *App) View(c *ui.Context) {
 // stageRoom is how wide the stage's content can be in this frame, beside
 // the drawer.
 func (a *App) stageRoom(c *ui.Context) float32 {
-	w, _ := c.Size()
+	w, h := c.Size()
+	if boardShapeFor(w, h) == boardSideBySide {
+		// The drawer always covers a short page, so it takes no room here.
+		_, room := sideColumns(w)
+		return room
+	}
 	if !a.drawerCovers(c) {
 		w -= drawerW * a.drawerShown
 	}
@@ -103,10 +124,11 @@ func (a *App) stageRoom(c *ui.Context) float32 {
 }
 
 // drawerCovers is whether the stats drawer lies over the stage in this
-// frame, rather than beside it.
+// frame, rather than beside it: on a narrow page, and on a short one, whose
+// board has no room to give up.
 func (a *App) drawerCovers(c *ui.Context) bool {
-	w, _ := c.Size()
-	return w < drawerCoversW
+	w, h := c.Size()
+	return w < drawerCoversW || boardShapeFor(w, h) != boardStacked
 }
 
 // keyboardLayout is how many letter keys go on a row in this frame, and how

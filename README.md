@@ -50,7 +50,9 @@ The browser version differs from the desktop one in a few ways:
   let a page play sound before that.
 - The layout fits pages narrower than a desktop window: the chips move under
   the bar, the keyboard takes more rows, a long word shrinks before it
-  wraps, and the stats drawer covers the stage instead of sharing it.
+  wraps, and the stats drawer covers the stage instead of sharing it. A
+  page too short to stack the board, as a phone held sideways is, puts the
+  gallows beside the word and the keyboard.
 - On a phone or a tablet, the shortcut strip and the lines that name keys
   are left out, until a key on an attached keyboard is pressed.
 
