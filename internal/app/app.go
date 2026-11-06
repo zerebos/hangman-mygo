@@ -4,7 +4,6 @@ package app
 
 import (
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/zerebos/hangman-mygo/internal/game"
@@ -68,6 +67,15 @@ type App struct {
 	// drawerMoving is whether the drawer is on its way open or shut in this
 	// frame, while the stage follows it (see glideOn).
 	drawerMoving bool
+	// points are the points of the word just won, on their way into the
+	// Score chip, and landings counts the times they arrived, so the chip
+	// pops once for each.
+	points   pointsFlight
+	landings int
+	// pointsNow is where those points are in this frame. View sets it
+	// before building anything, because both the result card and the
+	// header read it.
+	pointsNow pointsPhase
 	// deal counts the words dealt, so the word on the board has a fresh
 	// identity each time and the old one slides away as the new one comes.
 	deal int
@@ -143,7 +151,8 @@ func (a *App) guess(letter rune) {
 	case out.Result == game.Invalid:
 		a.notice = bad(invalidGuess)
 	case out.Word == game.Won:
-		a.notice = good(gameWon + " +" + strconv.FormatUint(uint64(earned), 10))
+		a.notice = good(gameWon)
+		a.points = pointsFlight{points: earned, total: a.session.MatchPoints(), deal: a.deal}
 	case out.Word == game.Lost:
 		a.notice = bad(gameLost)
 	default:

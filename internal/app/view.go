@@ -56,6 +56,7 @@ func (a *App) View(c *ui.Context) {
 		a.toast = ""
 	}
 	a.handleKeys(c)
+	a.pointsNow = a.advancePoints(c)
 
 	ui.Column(c).Fill().Children(func() {
 		a.header(c, p)

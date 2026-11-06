@@ -50,7 +50,7 @@ func (a *App) header(c *ui.Context, p palette) {
 func (a *App) chips(c *ui.Context, p palette) {
 	ui.Row(c).Gap(8).Children(func() {
 		s := a.session.Stats()
-		chip(c, p, "Score", fmt.Sprint(a.session.MatchPoints()), p.Text)
+		a.scoreChip(c, p)
 		chip(c, p, "Streak", fmt.Sprint(s.Streak), p.Success)
 		chip(c, p, "Best", fmt.Sprint(s.BestStreak), p.blue)
 		chip(c, p, "Word", fmt.Sprintf("%d/%d", a.game.WordNumber(), a.game.TotalWords()), p.TextMuted)
@@ -76,6 +76,26 @@ func (a *App) difficultyMenu(c *ui.Context) {
 			}
 		}
 	}).Tooltip("Difficulty")
+}
+
+// scoreChip is the match's score. A copy of the points of a word just won
+// flies into it from the result card (see pointsFlight). It shows the score
+// without them until the copy lands, then pops, and the number rolls up to
+// take them.
+func (a *App) scoreChip(c *ui.Context, p palette) {
+	score := a.shownScore(a.pointsNow, c.Preferences().ReduceMotion)
+	box := ui.Box(c.Key("score"))
+	pop := box.Keyframes("pop", chipPop, ui.KeyframeOptions{Run: uint64(a.landings)})
+	box.Scale(pop, pop).Children(func() {
+		chip(c, p, "Score", fmt.Sprint(score), p.Text)
+		// The copy's end of the flight, over the chip's number, while it
+		// is on its way. It takes no room, so the chips around it
+		// stay put.
+		if a.pointsNow == pointsFlying {
+			ui.Text(c.Key("points"), a.points.label()).Absolute().Top(4).Right(10).
+				FontSize(14).Bold().TextColor(p.Success).SingleLine().AccessHidden(true).Transition(a.pointsInFlight())
+		}
+	})
 }
 
 // chip is one number of the scoreboard, small enough to live in the header.

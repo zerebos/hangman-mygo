@@ -34,8 +34,9 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 - Every action that changes the game or the score ends with `App.persist`, on every guess rather
   than at exit, so killing the process is not a free reroll.
 - The view runs every frame. State that outlives a frame lives on `App`, never in the view. The
-  two exceptions, `drawerShown` and `drawerMoving`, are set by `View` each frame before the stage
-  is built, because the keys size themselves from the drawer.
+  exceptions are set by `View` each frame before anything is built: `drawerShown` and
+  `drawerMoving`, because the keys size themselves from the drawer, and `pointsNow`, because the
+  result card and the Score chip both read where a won word's points are.
 
 ## mygo notes
 

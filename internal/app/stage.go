@@ -329,6 +329,28 @@ func (a *App) actions(c *ui.Context, p palette) {
 	})
 }
 
+// pointsPill is the points the word earned, beside the result's headline.
+// They stay for as long as the card does. A copy of their text lies over
+// them until it flies to the Score chip (see pointsFlight), and the pill's
+// own text stays clear until then, so the two never draw over each other.
+func (a *App) pointsPill(c *ui.Context, tone ui.Color) {
+	copyShown := a.pointsNow == pointsInCard && !c.Preferences().ReduceMotion
+	text := tone
+	if copyShown {
+		text = tone.Alpha(0)
+	}
+	label := a.points.label()
+	ui.Box(c.Key("points")).Children(func() {
+		ui.Text(c.Key("pill"), label).FontSize(20).Bold().TextColor(text).
+			Padding(0, 10).Radius(999).Background(tone.Alpha(0.15)).SingleLine()
+		if copyShown {
+			ui.Text(c.Key("copy"), label).Absolute().Top(0).Left(0).FontSize(20).Bold().
+				TextColor(tone).Padding(0, 10).SingleLine().AccessHidden(true).
+				Transition(a.pointsInFlight())
+		}
+	})
+}
+
 // iconButton is a button with an icon before its label.
 func iconButton(c *ui.Context, key string, icon *ui.SVG, label string) ui.Element {
 	return ui.Button(c.Key(key), "").Label(label).Children(func() {
@@ -355,7 +377,12 @@ func (a *App) result(c *ui.Context, p palette) {
 	ui.Column(c).Width(rowWidth(a.keyboardLayout(c))).Gap(14).Padding(18, 22).Radius(14).
 		Background(tone.Alpha(0.1)).Border(1, tone.Alpha(0.45)).Children(func() {
 		ui.Column(c).Gap(4).Children(func() {
-			ui.Text(c, headline).FontSize(20).Bold().TextColor(tone)
+			ui.Row(c).AlignItems(ui.Center).Gap(10).Children(func() {
+				ui.Text(c, headline).FontSize(20).Bold().TextColor(tone)
+				if won && a.points.points > 0 && a.points.deal == a.deal {
+					a.pointsPill(c, tone)
+				}
+			})
 			ui.Text(c, "The word was "+a.game.Word()).TextColor(p.Text)
 		})
 		if a.game.IsMatchOver() {

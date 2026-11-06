@@ -74,6 +74,8 @@ Almost everything moves:
   fades into the color its guess earned.
 - When a word ends, the keyboard folds away and the result card rises into its
   place. A new word slides in as the old one slides out.
+- A won word's points show in the result card, and a moment later a copy of
+  them flies up into the Score chip, which pops and rolls up to take them.
 - The lifetime stats open as a drawer that pushes the stage aside, the keys
   shrinking in step with it.
 - A match ends on its own summary, its numbers counting up one after another,
