@@ -64,3 +64,17 @@ func withStorage(use func(storage js.Value)) (ok bool) {
 // Browsers have no open dialog for mygo to show, so there is no Open word
 // list on the web.
 func filePicker(func() *mygo.Window) func(done func(string, error)) { return nil }
+
+// touchFirst asks the browser whether the device's main pointer is a finger
+// that cannot hover, as a phone's or a tablet's is. mygo's input does not
+// say which kind of pointer pressed, so this reads the CSS media features
+// that say so for the device. A laptop with a touchscreen still has a fine,
+// hovering main pointer, so it is not touch-first.
+func touchFirst() (yes bool) {
+	defer func() {
+		if recover() != nil {
+			yes = false
+		}
+	}()
+	return js.Global().Call("matchMedia", "(hover: none) and (pointer: coarse)").Get("matches").Bool()
+}

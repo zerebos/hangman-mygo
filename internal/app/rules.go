@@ -23,6 +23,7 @@ const (
 
 const (
 	idleHint           = "Type a letter, or click one above."
+	idleHintTouch      = "Tap a letter above."
 	customListSubtitle = "Custom word list"
 	hintGiven          = "That cost you a guess:"
 

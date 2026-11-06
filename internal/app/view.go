@@ -59,7 +59,9 @@ func (a *App) View(c *ui.Context) {
 		c.Toast(a.toast)
 		a.toast = ""
 	}
-	a.handleKeys(c)
+	if a.handleKeys(c) {
+		a.keysPressed = true
+	}
 	a.pointsNow = a.advancePoints(c)
 	a.bestHeld = a.advanceBest(c)
 
@@ -121,25 +123,31 @@ const (
 	giveUpLetter = "G"
 )
 
-// handleKeys turns the keyboard into guesses and shortcuts. mygo holds the
-// window's shortcuts back while a dialog is open, so a letter typed at the
-// Reset question is not guessed on the board behind it.
-func (a *App) handleKeys(c *ui.Context) {
+// handleKeys turns the keyboard into guesses and shortcuts, and reports
+// whether a key did anything. mygo holds the window's shortcuts back while a
+// dialog is open, so a letter typed at the Reset question is not guessed on
+// the board behind it.
+func (a *App) handleKeys(c *ui.Context) (pressed bool) {
 	if c.Shortcut(ui.Cmd, ui.KeyH) {
 		a.hint()
+		pressed = true
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyL) {
 		a.showClue()
+		pressed = true
 	}
 	if c.Shortcut(ui.Cmd, giveUpKey) {
 		a.giveUp()
+		pressed = true
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyO) {
 		a.openWordList()
+		pressed = true
 	}
 	// A focused button keeps Enter and Space, so these only mean "next word"
 	// while the focus is elsewhere.
 	if a.game.IsWordOver() && (c.Shortcut(0, ui.KeyEnter) || c.Shortcut(0, ui.KeySpace)) {
+		pressed = true
 		switch {
 		case !a.game.IsMatchOver():
 			a.nextWord()
@@ -153,8 +161,10 @@ func (a *App) handleKeys(c *ui.Context) {
 		key := ui.KeyA + ui.Key(i)
 		if c.Shortcut(0, key) || c.Shortcut(ui.Shift, key) {
 			a.guess(rune('A' + i))
+			pressed = true
 		}
 	}
+	return pressed
 }
 
 // chord spells a Cmd shortcut the way the platform does.
@@ -194,6 +204,9 @@ func eyebrow(c *ui.Context, p palette, text string) ui.Element {
 // quieter than the stage, but stays, because a tooltip only teaches a
 // shortcut to someone who already suspects there is one.
 func (a *App) shortcutBar(c *ui.Context, p palette) {
+	if !a.keysTaught() {
+		return
+	}
 	ui.Row(c).Wrap().Justify(ui.Center).Gap(18).Padding(8, 20).Opacity(0.85).Children(func() {
 		legend := shortcutLegend(a.game, legendState{
 			clueShown:    a.clueShown,

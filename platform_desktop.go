@@ -16,6 +16,9 @@ import (
 const drawsOwnControls = runtime.GOOS != "darwin"
 
 // The settings live in settings.json in the user's config directory.
+// A desktop has a keyboard, even one with a touchscreen.
+func touchFirst() bool { return false }
+
 func loadSettings() settings.Settings  { return settings.Load(settings.Path()) }
 func saveSettings(s settings.Settings) { s.Save(settings.Path()) }
 

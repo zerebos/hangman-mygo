@@ -228,6 +228,9 @@ func (a *App) feedback(c *ui.Context, p palette) {
 	// while the line is empty during a result.
 	a.glideOn(ui.Row(c.Key("feedback")).FillWidth().Height(24).Justify(ui.Center).AlignItems(ui.Center)).Children(func() {
 		text, color, italic := idleHint, p.TextMuted, false
+		if !a.keysTaught() {
+			text = idleHintTouch
+		}
 		switch n := a.notice; {
 		case a.game.IsWordOver():
 			text = ""
@@ -398,7 +401,9 @@ func (a *App) result(c *ui.Context, p palette) {
 			return
 		}
 		ui.Row(c).AlignItems(ui.Center).Gap(12).Children(func() {
-			ui.Text(c, "Press Enter for the next word.").FontSize(13).TextColor(p.TextMuted)
+			if a.keysTaught() {
+				ui.Text(c, "Press Enter for the next word.").FontSize(13).TextColor(p.TextMuted)
+			}
 			ui.Spacer(c)
 			if ui.PrimaryButton(c.Key("next"), "New Game").Padding(10, 22).Tooltip("Next word (Enter)").Clicked() {
 				a.nextWord()

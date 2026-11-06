@@ -51,6 +51,8 @@ The browser version differs from the desktop one in a few ways:
 - The layout fits pages narrower than a desktop window: the chips move under
   the bar, the keyboard takes more rows, a long word shrinks before it
   wraps, and the stats drawer covers the stage instead of sharing it.
+- On a phone or a tablet, the shortcut strip and the lines that name keys
+  are left out, until a key on an attached keyboard is pressed.
 
 The first visit downloads about 3.5 MB.
 
@@ -180,7 +182,7 @@ real game could have reached is thrown away and a fresh one dealt.
 | [`internal/app`](internal/app) | The window: its state and actions (`app.go`), the rules it reads (`rules.go`), and the view, split by part of the window (`view.go`, `header.go`, `stage.go`, `drawer.go`, `summary.go`, `drawing.go`, `confetti.go`, `controls.go`, `motion.go`). |
 | [`internal/sounds`](internal/sounds) | The sound cues, synthesized as samples. |
 | [`assets`](assets) | The four bundled word packs, embedded in the binary. |
-| `main.go` | Opens the window. What differs between desktops and browsers (where the settings go, the file dialog, the window controls) is in `platform_desktop.go` and `platform_web.go`, chosen by build tag. |
+| `main.go` | Opens the window. What differs between desktops and browsers (where the settings go, the file dialog, the window controls, whether the device is touch-first) is in `platform_desktop.go` and `platform_web.go`, chosen by build tag. |
 
 Only `internal/app` and the `main` package import mygo. The other packages are plain
 Go, so their tests run without a window. The view's tests run without one

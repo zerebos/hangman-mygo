@@ -37,6 +37,10 @@ type Options struct {
 	// means there is no way to ask, as in a browser, and the window offers
 	// no Open word list.
 	PickFile func(done func(contents string, err error))
+	// TouchFirst is whether the device's main pointer is a finger that
+	// cannot hover, as a phone's or a tablet's is. The window then leaves
+	// out what only a keyboard can use, until a key is pressed.
+	TouchFirst bool
 }
 
 // App is the state of the Hangman window.
@@ -103,6 +107,9 @@ type App struct {
 	fade themeState
 	// confirmReset is whether the Reset stats question is open.
 	confirmReset bool
+	// keysPressed is whether a key has played the game since launch, which
+	// on a touch-first device means a keyboard is attached after all.
+	keysPressed bool
 	// toast is a message for the view to show as a toast on its next build,
 	// from work that finished outside it.
 	toast string
@@ -355,6 +362,11 @@ func (a *App) setDifficulty(d game.Difficulty) {
 
 // canOpenFiles is whether the window can ask for a word list.
 func (a *App) canOpenFiles() bool { return a.opts.PickFile != nil }
+
+// keysTaught is whether the window shows the keyboard's shortcuts and
+// mentions its keys. A touch-first device has no keyboard until one of its
+// keys is pressed, and a list of shortcuts it cannot press is only noise.
+func (a *App) keysTaught() bool { return !a.opts.TouchFirst || a.keysPressed }
 
 // openWordList asks for a file and loads it.
 func (a *App) openWordList() {

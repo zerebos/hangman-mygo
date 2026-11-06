@@ -35,9 +35,10 @@ func (speaker) Play(samples []float32, delay time.Duration) {
 func main() {
 	var win *mygo.Window
 	game := app.New(loadSettings(), app.Options{
-		Save:     saveSettings,
-		Speaker:  speaker{},
-		PickFile: filePicker(func() *mygo.Window { return win }),
+		Save:       saveSettings,
+		Speaker:    speaker{},
+		PickFile:   filePicker(func() *mygo.Window { return win }),
+		TouchFirst: touchFirst(),
 	})
 
 	mygo.App.WhenReady(func() {
