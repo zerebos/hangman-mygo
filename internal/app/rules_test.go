@@ -478,21 +478,21 @@ func TestTheWordShrinksToFitOneLineBeforeItWraps(t *testing.T) {
 		}
 		return cells
 	}
-	if s := wordScale(672, word(8)); s != 1 {
+	if s := wordScale(672, word(8), minWordScale); s != 1 {
 		t.Errorf("a short word on a desktop scales by %v", s)
 	}
 	// Eight letters at full size need 8*cellW + 7*wordGap = 422.
-	if s := wordScale(342, word(8)); s >= 1 || 422*s > 342.01 {
+	if s := wordScale(342, word(8), minWordScale); s >= 1 || 422*s > 342.01 {
 		t.Errorf("eight letters on a phone scale by %v", s)
 	}
-	if s := wordScale(100, word(20)); s != minWordScale {
+	if s := wordScale(100, word(20), minWordScale); s != minWordScale {
 		t.Errorf("a long word in a small room scales by %v", s)
 	}
 	// A space is half a cell: two words of four letters need 454, and
 	// nine letters 476, each with a pixel to spare.
 	spaced := word(9)
 	spaced[4].Guessable = false
-	if wordScale(455, spaced) != 1 || wordScale(455, word(9)) == 1 {
+	if wordScale(455, spaced, minWordScale) != 1 || wordScale(455, word(9), minWordScale) == 1 {
 		t.Error("a space counted as a whole cell")
 	}
 }

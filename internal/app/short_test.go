@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -54,9 +55,23 @@ func fits(t *testing.T, tt *ui.Tester, w, h int, s string) {
 // included, and the result card once the word is won. On the narrowest of
 // them the chips stay in the bar, and the wordmark makes room.
 func TestAPhoneOnItsSideFitsTheWholeBoard(t *testing.T) {
+	// The longest words of the bundled packs, with a category and a clue
+	// shown, so each takes all the height a word can.
+	longest := []string{"Floccinaucinihilipilification", "Verisimilitude", "Jigsaw Puzzle"}
 	for _, size := range [][2]int{{844, 390}, {667, 375}, {sideBySideW, 375}} {
-		w, h := size[0], size[1]
+		for _, word := range longest {
+			sideways(t, size[0], size[1], word)
+		}
+	}
+}
+
+// sideways checks one word on one sideways page.
+func sideways(t *testing.T, w, h int, word string) {
+	t.Helper()
+	{
 		a, tt := touchTester(true)
+		a.loadWordList(fmt.Sprintf(`{"name": "Long", "words": [{"word": %q, "category": "Long words", "clue": "A long one."}]}`, word), nil)
+		a.showClue()
 		tt.SetSize(w, h)
 		tt.Advance(2 * time.Second)
 		for _, s := range []string{"A", "Z", "Hint", "Give up", "Score", "Word"} {
@@ -73,7 +88,8 @@ func TestAPhoneOnItsSideFitsTheWholeBoard(t *testing.T) {
 		}
 		tt.Frame()
 		tt.Advance(3 * time.Second)
-		fits(t, tt, w, h, "New Game")
+		// The list is one word, so the card leads to the match.
+		fits(t, tt, w, h, "See the match")
 	}
 }
 

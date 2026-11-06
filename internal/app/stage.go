@@ -36,7 +36,10 @@ func (a *App) board(c *ui.Context, p palette) {
 			ui.Column(c).Width(gallowsW).FillHeight().AlignItems(ui.Center).Gap(10).Children(func() {
 				a.scaffold(c, p)
 			})
-			ui.Column(c).Width(a.stageRoom(c)).FillHeight().Justify(ui.Center).AlignItems(ui.Center).Gap(10).
+			// The word's column is tighter than a stacked board's, because
+			// the longest word with its clue needs every pixel of a short
+			// page.
+			ui.Column(c).Width(a.stageRoom(c)).FillHeight().Justify(ui.Center).AlignItems(ui.Center).Gap(6).
 				Children(func() { a.puzzle(c, p) })
 		})
 	case boardScrolled:
@@ -178,7 +181,11 @@ func (a *App) wordBody(c *ui.Context, p palette) {
 				Radius(999).Border(1, p.Border)
 		}
 		cells := a.game.Cells()
-		scale := wordScale(a.stageRoom(c), cells)
+		least := float32(minWordScale)
+		if w, h := c.Size(); boardShapeFor(w, h) == boardSideBySide {
+			least = sideMinWordScale
+		}
+		scale := wordScale(a.stageRoom(c), cells, least)
 		row := ui.Row(c.Key("word")).Wrap().Justify(ui.Center).Gap(wordGap * scale).Label(wordLabel(a.game.Word()))
 		// A wrong guess shakes the word. Below one wrong guess there is no
 		// shake at all, so the row does not twitch as a word is dealt.

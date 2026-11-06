@@ -22,7 +22,12 @@ const (
 	// minWordScale is the smallest the word shrinks to fit on one line,
 	// before it wraps instead.
 	minWordScale = 0.6
-	pipSize      = 10
+	// sideMinWordScale is the same on a side-by-side board, smaller because
+	// a short page has no height for a word on several lines. Even the
+	// longest bundled word then takes two lines shorter than one line of a
+	// short word at full size.
+	sideMinWordScale = 0.4
+	pipSize          = 10
 	// stageW is the widest the stage grows, so the scene stays one
 	// composition on a wide window instead of spreading to its edges.
 	stageW  = 720

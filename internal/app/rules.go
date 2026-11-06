@@ -150,9 +150,9 @@ func keyLayout(room float32) (perRow int, size float32) {
 }
 
 // wordScale is how much the word shrinks to fit room on one line: 1 when it
-// fits at full size, and never below minWordScale, where it wraps instead.
+// fits at full size, and never below least, where it wraps instead.
 // A cell that is not a letter (a space, a slash) is half a cell wide.
-func wordScale(room float32, cells []game.Cell) float32 {
+func wordScale(room float32, cells []game.Cell, least float32) float32 {
 	if len(cells) == 0 {
 		return 1
 	}
@@ -166,7 +166,7 @@ func wordScale(room float32, cells []game.Cell) float32 {
 	}
 	// A pixel to spare, because a row exactly as wide as its room can wrap
 	// on rounding.
-	return min(max((room-1)/natural, minWordScale), 1)
+	return min(max((room-1)/natural, least), 1)
 }
 
 // rowWidth is how wide a row of perRow keys of size is.
