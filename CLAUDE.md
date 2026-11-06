@@ -15,8 +15,16 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 
 ## Rules for the code
 
-- Only `internal/app` and `main.go` import mygo. `words`, `game`, `stats`, `settings`, `gallows`
-  and `sounds` stay plain Go so their tests need no window and no audio device.
+- The game also builds for browsers (`GOOS=js GOARCH=wasm`, or `go tool mygo build -platform
+  web`). What differs lives in `main`, in `platform_desktop.go` (`!js`) and `platform_web.go`
+  (`js`): where the settings go, the file picker, and who draws the window controls. The app
+  only sees `Options`, where a nil `PickFile` means the window cannot open files, so nothing
+  offers to. Check both with `go vet ./... && GOOS=js GOARCH=wasm go vet .`.
+- Browsers never give a page Ctrl+N, Ctrl+T or Ctrl+W, so no shortcut may use them.
+- A tab can be any size, below the desktop window's minimum, so anything sized from the
+  window needs a narrow fallback (`keyLayout`, `wordScale`, `chipsBelowW`).
+- Only `internal/app` and the `main` package import mygo. `words`, `game`, `stats`, `settings`,
+  `gallows` and `sounds` stay plain Go so their tests need no window and no audio device.
 - Absent values are zero values: `game.NoDifficulty`, `game.InPlay`, `game.MatchRunning`, an empty
   category or clue, a pack `GuessBudget` of 0. Keep blank meaning absent at every boundary.
 - The helpers in `internal/app/rules.go` take no UI types and are tested directly. Anything pulled

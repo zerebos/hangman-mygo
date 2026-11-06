@@ -30,6 +30,30 @@ The icon is [`design/icon/icon.png`](design/icon), named in `mygo.json` and buil
 No system libraries are needed on any platform, and the sound works out of
 the box, unlike the gpui version, where sound was an opt-in cargo feature.
 
+## Playing in a browser
+
+The same code runs in a browser, compiled to WebAssembly, and every push to
+`main` publishes it to GitHub Pages at
+<https://zerebos.github.io/hangman-mygo/> (`.github/workflows/pages.yml`).
+To build or develop it locally:
+
+```sh
+go tool mygo build -platform web   # a static site in build/web
+go tool mygo dev -web              # serves it at localhost:5174 and rebuilds on edits
+```
+
+The browser version differs from the desktop one in a few ways:
+
+- There is no Open word list, because browsers give mygo no file dialog.
+- The settings live in the page's local storage instead of a file.
+- Sound starts with your first click or key press, because browsers do not
+  let a page play sound before that.
+- The layout fits pages narrower than a desktop window: the chips move under
+  the bar, the keyboard takes more rows, and a long word shrinks before it
+  wraps.
+
+The first visit downloads about 3.5 MB.
+
 ## The interface
 
 The window is one stage. The header is also the title bar: the wordmark, a
@@ -99,7 +123,7 @@ silence. `Sound effects` in the ⋯ menu turns it all off, and is remembered.
 | See the match once its last word ends | `See the match`, or Enter |
 | Play the same difficulty or list again | `Play … again` on the summary, or Enter |
 | Change difficulty (starts a fresh match) | The dropdown beside the wordmark |
-| Load your own word list or pack | `Ctrl+O`, or the ⋯ menu |
+| Load your own word list or pack (desktop only) | `Ctrl+O`, or the ⋯ menu |
 | Show the lifetime stats | The ⋯ menu |
 | Throw the lifetime stats away | `Reset stats`, in the stats drawer, which asks first |
 | Switch between light and dark | The ⋯ menu |
@@ -129,6 +153,9 @@ config directory, written the moment it changes:
 | macOS | `~/Library/Application Support/hangman-mygo/settings.json` |
 | Linux | `$XDG_CONFIG_HOME/hangman-mygo/settings.json`, or `~/.config/hangman-mygo/settings.json` |
 
+In a browser the same JSON is kept in the page's local storage, under
+`hangman-mygo/settings`.
+
 The format is the gpui version's without its `window` key, because mygo
 remembers the window's size and place itself. The file is as forgiving as it
 was: a key holding nonsense costs only that key, and a saved match that no
@@ -146,8 +173,9 @@ real game could have reached is thrown away and a fresh one dealt.
 | [`internal/app`](internal/app) | The window: its state and actions (`app.go`), the rules it reads (`rules.go`), and the view, split by part of the window (`view.go`, `header.go`, `stage.go`, `drawer.go`, `summary.go`, `drawing.go`, `confetti.go`, `controls.go`, `motion.go`). |
 | [`internal/sounds`](internal/sounds) | The sound cues, synthesized as samples. |
 | [`assets`](assets) | The four bundled word packs, embedded in the binary. |
+| `main.go` | Opens the window. What differs between desktops and browsers (where the settings go, the file dialog, the window controls) is in `platform_desktop.go` and `platform_web.go`, chosen by build tag. |
 
-Only `internal/app` and `main.go` import mygo. The other packages are plain
+Only `internal/app` and the `main` package import mygo. The other packages are plain
 Go, so their tests run without a window. The view's tests run without one
 too, through mygo's `ui.Tester`, which clicks, types and advances a clock of
 its own, so the animations are tested part way as well as at rest.
