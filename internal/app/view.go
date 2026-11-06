@@ -57,6 +57,7 @@ func (a *App) View(c *ui.Context) {
 	}
 	a.handleKeys(c)
 	a.pointsNow = a.advancePoints(c)
+	a.bestHeld = a.advanceBest(c)
 
 	ui.Column(c).Fill().Children(func() {
 		a.header(c, p)

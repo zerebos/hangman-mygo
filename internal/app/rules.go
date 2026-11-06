@@ -377,3 +377,8 @@ func saveMatch(g *game.Game, s *stats.Session) *settings.SavedMatch {
 	}
 	return settings.NewSavedMatch(snapshot, s.MatchPoints())
 }
+
+// isNewBest is whether a win took the best streak from before to after
+// with a record worth marking. The very first win sets the first best, but
+// beats nothing, so only a best that was already there can be beaten.
+func isNewBest(before, after uint32) bool { return before > 0 && after > before }

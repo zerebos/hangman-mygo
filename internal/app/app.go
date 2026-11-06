@@ -76,6 +76,13 @@ type App struct {
 	// before building anything, because both the result card and the
 	// header read it.
 	pointsNow pointsPhase
+	// best is a record streak waiting for its moment in the Best chip, and
+	// bestPops counts the moments, so the chip pops once for each.
+	best     bestMoment
+	bestPops int
+	// bestHeld is whether the Best chip still shows the beaten record in
+	// this frame. View sets it before building anything.
+	bestHeld bool
 	// deal counts the words dealt, so the word on the board has a fresh
 	// identity each time and the old one slides away as the new one comes.
 	deal int
@@ -137,6 +144,7 @@ func (a *App) guess(letter rune) {
 	if landed {
 		a.lastGuess = upper(letter)
 	}
+	bestBefore := a.session.Stats().BestStreak
 	earned := a.record(out.Word, out.Match)
 
 	switch out.Result {
@@ -146,6 +154,10 @@ func (a *App) guess(letter rune) {
 		a.play(sounds.Wood.Wrong(a.wrongStep()), 0)
 	}
 	a.playWordEnd(out.Word)
+	if best := a.session.Stats().BestStreak; isNewBest(bestBefore, best) {
+		a.best = bestMoment{from: bestBefore, to: best}
+		a.play(sounds.Wood.NewBest(), newBestDelay)
+	}
 
 	switch {
 	case out.Result == game.Invalid:

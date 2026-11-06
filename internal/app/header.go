@@ -52,7 +52,7 @@ func (a *App) chips(c *ui.Context, p palette) {
 		s := a.session.Stats()
 		a.scoreChip(c, p)
 		chip(c, p, "Streak", fmt.Sprint(s.Streak), p.Success)
-		chip(c, p, "Best", fmt.Sprint(s.BestStreak), p.blue)
+		popping(c, "best", a.bestPops, func() { chip(c, p, "Best", fmt.Sprint(a.shownBest()), p.blue) })
 		chip(c, p, "Word", fmt.Sprintf("%d/%d", a.game.WordNumber(), a.game.TotalWords()), p.TextMuted)
 	})
 }
@@ -84,9 +84,7 @@ func (a *App) difficultyMenu(c *ui.Context) {
 // take them.
 func (a *App) scoreChip(c *ui.Context, p palette) {
 	score := a.shownScore(a.pointsNow, c.Preferences().ReduceMotion)
-	box := ui.Box(c.Key("score"))
-	pop := box.Keyframes("pop", chipPop, ui.KeyframeOptions{Run: uint64(a.landings)})
-	box.Scale(pop, pop).Children(func() {
+	popping(c, "score", a.landings, func() {
 		chip(c, p, "Score", fmt.Sprint(score), p.Text)
 		// The copy's end of the flight, over the chip's number, while it
 		// is on its way. It takes no room, so the chips around it
@@ -96,6 +94,13 @@ func (a *App) scoreChip(c *ui.Context, p palette) {
 				FontSize(14).Bold().TextColor(p.Success).SingleLine().AccessHidden(true).Transition(a.pointsInFlight())
 		}
 	})
+}
+
+// popping is a chip that swells once each time runs goes up.
+func popping(c *ui.Context, key string, runs int, children func()) {
+	box := ui.Box(c.Key(key))
+	pop := box.Keyframes("pop", chipPop, ui.KeyframeOptions{Run: uint64(runs)})
+	box.Scale(pop, pop).Children(children)
 }
 
 // chip is one number of the scoreboard, small enough to live in the header.

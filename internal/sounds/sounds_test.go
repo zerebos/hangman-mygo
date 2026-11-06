@@ -21,6 +21,7 @@ func cues() map[string][]float32 {
 			"clue":        p.Clue(),
 			"word won":    p.WordWon(),
 			"word lost":   p.WordLost(),
+			"new best":    p.NewBest(),
 			"match won":   p.MatchWon(),
 			"match ended": p.MatchEnded(),
 		} {

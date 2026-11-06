@@ -76,6 +76,8 @@ Almost everything moves:
   place. A new word slides in as the old one slides out.
 - A won word's points show in the result card, and a moment later a copy of
   them flies up into the Score chip, which pops and rolls up to take them.
+- A win that beats your best streak makes the Best chip pop as it takes the
+  new record, a moment after the win.
 - The lifetime stats open as a drawer that pushes the stage aside, the keys
   shrinking in step with it.
 - A match ends on its own summary, its numbers counting up one after another,
@@ -107,6 +109,8 @@ is a soft wooden pluck, like a marimba, on a pentatonic scale:
 - A fresh word opens on a quiet low fifth, and the clue on a quiet high glint.
 - A word solved ends on a short rising arpeggio, and a word lost on three soft
   notes stepping down.
+- A win that beats your best streak adds a bright two-note glint over the
+  arpeggio, as the Best chip takes the record.
 - The match's summary opens on a longer phrase if you won it, and a gentle
   close if not.
 

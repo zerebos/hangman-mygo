@@ -139,7 +139,8 @@ func (a *App) shownScore(phase pointsPhase, reduceMotion bool) uint32 {
 	return score
 }
 
-// chipPop swells the Score chip as the points land in it.
+// chipPop swells a chip as something lands in it: the Score chip as the
+// points arrive, and the Best chip as it takes a new record.
 var chipPop = []ui.Keyframe{
 	{Value: 1},
 	{At: 90 * time.Millisecond, Value: 1.12, Ease: ui.EaseOut},

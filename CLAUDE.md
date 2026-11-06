@@ -35,8 +35,9 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
   than at exit, so killing the process is not a free reroll.
 - The view runs every frame. State that outlives a frame lives on `App`, never in the view. The
   exceptions are set by `View` each frame before anything is built: `drawerShown` and
-  `drawerMoving`, because the keys size themselves from the drawer, and `pointsNow`, because the
-  result card and the Score chip both read where a won word's points are.
+  `drawerMoving`, because the keys size themselves from the drawer, `pointsNow`, because the
+  result card and the Score chip both read where a won word's points are, and `bestHeld`,
+  because working it out schedules the frame of the Best chip's pop.
 
 ## mygo notes
 
@@ -58,6 +59,9 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 - Letters fly with `Transition{Match, Fly}`. A Match pairs one element going with one coming, so a
   key carries hidden stand-ins for each extra cell its letter fills. The match includes the deal,
   so a letter never flies into the next word's keyboard.
+- A flight that carries something worth reading flies a copy and leaves the original in place,
+  as the result card's points pill does (`pointsPill`), so the motion never takes away what
+  the player still wants to read.
 - Avoid `Blur` on anything that animates often: it draws into a bitmap every frame, and the
   tester draws on the CPU, which made the view tests six times slower.
 - Check motion part way, not only at rest: open the drawer by clicking, `tt.Advance` a little, and

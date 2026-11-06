@@ -26,6 +26,7 @@ type Palette struct {
 	Clue       func() []float32
 	WordWon    func() []float32
 	WordLost   func() []float32
+	NewBest    func() []float32
 	MatchWon   func() []float32
 	MatchEnded func() []float32
 }
@@ -33,7 +34,8 @@ type Palette struct {
 // Wood is the marimba palette.
 var Wood = Palette{
 	Name: "wood", Right: woodRight, Wrong: woodWrong, Hint: woodHint, NewWord: woodNewWord, Clue: woodClue,
-	WordWon: woodWordWon, WordLost: woodWordLost, MatchWon: woodMatchWon, MatchEnded: woodMatchEnded,
+	WordWon: woodWordWon, WordLost: woodWordLost, NewBest: woodNewBest, MatchWon: woodMatchWon,
+	MatchEnded: woodMatchEnded,
 }
 
 // Rate is the sample rate of every cue: mygo's output rate, so nothing is
@@ -279,6 +281,17 @@ func woodWordLost() []float32 {
 		b.mix(pluck(freq(note), 1.1, 0.5), 0.22*float64(i), 0.9-0.15*float64(i))
 	}
 	return b.samples(0.55)
+}
+
+// woodNewBest is a streak beating the best: a bright glint of two notes
+// climbing from G6 to C7, above the win's chord, which it comes in over.
+// It is the clue's two notes turned upward and an octave above the climb's
+// top, so it reads as a reward rather than a letter.
+func woodNewBest() []float32 {
+	b := newBuffer(1.0)
+	b.mix(pluck(freq(91), 0.7, 0.6), 0, 0.8)
+	b.mix(pluck(freq(96), 0.9, 0.6), 0.09, 1)
+	return b.samples(0.4)
 }
 
 // woodMatchWon is a match won, played with the confetti: a longer phrase up the
