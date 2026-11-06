@@ -27,6 +27,10 @@ const (
 	// composition on a wide window instead of spreading to its edges.
 	stageW  = 720
 	drawerW = 320
+	// drawerCoversW is the narrowest window the stats drawer shares with the
+	// stage. A narrower one, which only a browser tab can be, would leave
+	// the stage a sliver beside it, so the drawer covers the stage instead.
+	drawerCoversW = 760
 	// stagePad is the room left and right of the stage.
 	stagePad = 24
 	// labelColW is the label column of the per-difficulty breakdown.
@@ -90,8 +94,17 @@ func (a *App) View(c *ui.Context) {
 // the drawer.
 func (a *App) stageRoom(c *ui.Context) float32 {
 	w, _ := c.Size()
-	w -= drawerW * a.drawerShown
+	if !a.drawerCovers(c) {
+		w -= drawerW * a.drawerShown
+	}
 	return min(w, stageW) - 2*stagePad
+}
+
+// drawerCovers is whether the stats drawer lies over the stage in this
+// frame, rather than beside it.
+func (a *App) drawerCovers(c *ui.Context) bool {
+	w, _ := c.Size()
+	return w < drawerCoversW
 }
 
 // keyboardLayout is how many letter keys go on a row in this frame, and how

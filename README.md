@@ -49,8 +49,8 @@ The browser version differs from the desktop one in a few ways:
 - Sound starts with your first click or key press, because browsers do not
   let a page play sound before that.
 - The layout fits pages narrower than a desktop window: the chips move under
-  the bar, the keyboard takes more rows, and a long word shrinks before it
-  wraps.
+  the bar, the keyboard takes more rows, a long word shrinks before it
+  wraps, and the stats drawer covers the stage instead of sharing it.
 
 The first visit downloads about 3.5 MB.
 
@@ -79,7 +79,8 @@ Almost everything moves:
 - A win that beats your best streak makes the Best chip pop as it takes the
   new record, a moment after the win.
 - The lifetime stats open as a drawer that pushes the stage aside, the keys
-  shrinking in step with it.
+  shrinking in step with it. On a page too narrow to share, such as a phone,
+  the drawer slides over the stage instead, and tapping beside it closes it.
 - A match ends on its own summary, its numbers counting up one after another,
   with confetti when you won it.
 - Switching between light and dark fades the whole window from one theme to
