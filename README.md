@@ -140,6 +140,7 @@ silence. `Sound effects` in the ⋯ menu turns it all off, and is remembered.
 | Reveal a letter (costs one wrong guess) | `Hint`, or `Ctrl+H` (`⌘H` on macOS) |
 | Show what the word means (costs nothing) | `Clue`, or `Ctrl+L` |
 | Give up on the word (counts as a loss) | `Give up`, `Ctrl+G`, or the ⋯ menu |
+| Have a screen reader spell out the word and the misses | `Ctrl+.` (`⌘.` on macOS), or the ⋯ menu |
 | Next word once a word ends | `New Game`, or Enter / Space |
 | See the match once its last word ends | `See the match`, or Enter |
 | Play the same difficulty or list again | `Play … again` on the summary, or Enter |

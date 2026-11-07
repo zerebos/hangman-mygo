@@ -135,6 +135,9 @@ func (a *App) menu(c *ui.Context) {
 		if m.Item("Give up on this word").Shortcut(ui.Cmd, giveUpKey).Disabled(a.game.IsWordOver()).Chosen() {
 			a.giveUp()
 		}
+		if m.Item("Read out the word").Shortcut(ui.Cmd, readWordKey).Chosen() {
+			a.say(wordSaid(a.game))
+		}
 		m.Separator()
 		if m.Item("Lifetime stats").Checked(a.showStats).Chosen() {
 			a.showStats = !a.showStats

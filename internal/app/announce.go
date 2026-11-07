@@ -86,3 +86,50 @@ func dealtSaid(g *game.Game) string {
 
 // newBestSaid is a streak beating the best.
 func newBestSaid(best uint32) string { return fmt.Sprintf("New best streak: %d.", best) }
+
+// wordSaid is the word as it stands, for the read-the-word key: its length,
+// each cell in order with the hidden ones as "blank", the letters missed so
+// far, and what the word can still afford. It tells no more than the screen
+// shows, because a finished word has every cell revealed already.
+func wordSaid(g *game.Game) string {
+	cells := g.Cells()
+	spoken := make([]string, len(cells))
+	for i, cell := range cells {
+		spoken[i] = cellSaid(cell)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s: %s.", letters(len(cells)), strings.Join(spoken, ", "))
+	var missed []string
+	for r := 'A'; r <= 'Z'; r++ {
+		if g.Guessed().Has(r) && !strings.ContainsRune(g.Word(), r) {
+			missed = append(missed, string(r))
+		}
+	}
+	if len(missed) == 0 {
+		b.WriteString(" No misses.")
+	} else {
+		b.WriteString(" Missed: " + strings.Join(missed, ", ") + ".")
+	}
+	if !g.IsWordOver() {
+		b.WriteString(" " + guessesLeft(g))
+	}
+	return b.String()
+}
+
+// cellSaid is one cell of the word. Punctuation is named, because screen
+// readers often skip it at their default settings.
+func cellSaid(cell game.Cell) string {
+	switch {
+	case !cell.Revealed:
+		return "blank"
+	case cell.Value == ' ':
+		return "space"
+	case cell.Value == '/':
+		return "slash"
+	case cell.Value == '-':
+		return "dash"
+	case cell.Value == '\'':
+		return "apostrophe"
+	}
+	return string(cell.Value)
+}

@@ -163,6 +163,11 @@ const (
 	giveUpLetter = "G"
 )
 
+// readWordKey reads the word out to screen readers with Cmd (Ctrl): each
+// letter and blank, and the misses. The letters are guesses, and browsers
+// keep many Ctrl+letter shortcuts, so it is a period instead.
+const readWordKey = ui.KeyPeriod
+
 // handleKeys turns the keyboard into guesses and shortcuts, and reports
 // whether a key did anything. mygo holds the window's shortcuts back while a
 // dialog is open, so a letter typed at the Reset question is not guessed on
@@ -182,6 +187,10 @@ func (a *App) handleKeys(c *ui.Context) (pressed bool) {
 	}
 	if c.Shortcut(ui.Cmd, ui.KeyO) {
 		a.openWordList()
+		pressed = true
+	}
+	if c.Shortcut(ui.Cmd, readWordKey) {
+		a.say(wordSaid(a.game))
 		pressed = true
 	}
 	// A focused button keeps Enter and Space, so these only mean "next word"

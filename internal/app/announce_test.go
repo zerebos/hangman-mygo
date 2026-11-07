@@ -144,3 +144,30 @@ func TestWhatIsReadOutAlsoGoesToTheAnnouncer(t *testing.T) {
 		t.Errorf("sent %q, the window read %q", sent, heard)
 	}
 }
+
+func TestTheWordIsSpelledOutWithItsBlanksAndMisses(t *testing.T) {
+	g := mustWords(t, "Add/Drop Form")
+	if got, want := wordSaid(g), "13 letters: blank, blank, blank, slash, blank, blank, blank, blank, space, blank, blank, blank, blank. No misses. "+guessesLeft(g); got != want {
+		t.Errorf("fresh:\n got %q\nwant %q", got, want)
+	}
+	g.Guess('D')
+	g.Guess('Z')
+	g.Guess('Q')
+	if got, want := wordSaid(g), "13 letters: blank, D, D, slash, D, blank, blank, blank, space, blank, blank, blank, blank. Missed: Q, Z. "+guessesLeft(g); got != want {
+		t.Errorf("part way:\n got %q\nwant %q", got, want)
+	}
+	g.GiveUp()
+	if got := wordSaid(g); got != "13 letters: A, D, D, slash, D, R, O, P, space, F, O, R, M. Missed: Q, Z." {
+		t.Errorf("over: %q", got)
+	}
+}
+
+func TestTheReadWordKeyReadsTheWordOut(t *testing.T) {
+	a, tt := bananas(t)
+	tt.Key(0, ui.KeyZ)
+	tt.Announcements()
+	tt.Key(ui.Cmd, readWordKey)
+	if got, want := heardSaid(tt), wordSaid(a.game); got != want || !strings.Contains(got, "Missed: Z.") {
+		t.Errorf("heard %q, want %q", got, want)
+	}
+}
