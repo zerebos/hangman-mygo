@@ -78,3 +78,30 @@ func touchFirst() (yes bool) {
 	}()
 	return js.Global().Call("matchMedia", "(hover: none) and (pointer: coarse)").Get("matches").Bool()
 }
+
+// announcer puts what the game reads out into a live region, a hidden
+// element of the page that screen readers read whenever its text changes,
+// because they cannot see into mygo's canvas. Each announcement replaces
+// the region's paragraph with a new one, since a reader passes over text
+// that is set again unchanged, and a word can end the same way twice. The
+// region is made now rather than at the first announcement, because some
+// readers only watch regions that were already on the page.
+func announcer() (announce func(string)) {
+	defer func() {
+		if recover() != nil {
+			announce = nil
+		}
+	}()
+	doc := js.Global().Get("document")
+	region := doc.Call("createElement", "div")
+	region.Call("setAttribute", "aria-live", "polite")
+	// Off-screen rather than display: none, which readers skip.
+	region.Get("style").Set("cssText", "position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap")
+	doc.Get("body").Call("appendChild", region)
+	return func(text string) {
+		defer func() { recover() }()
+		p := doc.Call("createElement", "p")
+		p.Set("textContent", text)
+		region.Call("replaceChildren", p)
+	}
+}

@@ -101,8 +101,10 @@ A screen reader hears the game as it goes: each guess and what it found
 ("A is in the word, 3 letters", "Z is not in the word. 5 guesses left."),
 hints, the clue, the end of each word with its points, each new word, a new
 best streak, and the match's result. The played keys, the word and the
-gallows also say what they are. In a browser, mygo does not reach screen
-readers yet, so this is the desktop's for now.
+gallows also say what they are. In a browser, mygo draws the game on a
+canvas that screen readers cannot see into, so the page reads the same words
+out through a hidden live region instead. A screen reader there hears the game
+and can play it from the keyboard, but cannot reach the buttons or the menus.
 
 ## Sound
 

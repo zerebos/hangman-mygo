@@ -39,6 +39,7 @@ func main() {
 		Speaker:    speaker{},
 		PickFile:   filePicker(func() *mygo.Window { return win }),
 		TouchFirst: touchFirst(),
+		Announce:   announcer(),
 	})
 
 	mygo.App.WhenReady(func() {

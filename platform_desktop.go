@@ -45,3 +45,7 @@ func filePicker(window func() *mygo.Window) func(done func(string, error)) {
 		}()
 	}
 }
+
+// A desktop's screen readers read the window itself, through mygo's
+// `c.Announce`, so there is no page to announce through.
+func announcer() func(string) { return nil }

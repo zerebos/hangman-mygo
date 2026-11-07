@@ -41,6 +41,10 @@ type Options struct {
 	// cannot hover, as a phone's or a tablet's is. The window then leaves
 	// out what only a keyboard can use, until a key is pressed.
 	TouchFirst bool
+	// Announce reads text out where the window cannot reach screen readers
+	// itself, as in a browser, whose readers cannot see into the canvas. Nil
+	// reads through the window alone.
+	Announce func(text string)
 }
 
 // App is the state of the Hangman window.

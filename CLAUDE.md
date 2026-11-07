@@ -17,9 +17,11 @@ HANGMAN_SHOTS=<dir> go test ./internal/app -run TestShots   # PNGs of the view
 
 - The game also builds for browsers (`GOOS=js GOARCH=wasm`, or `go tool mygo build -platform
   web`). What differs lives in `main`, in `platform_desktop.go` (`!js`) and `platform_web.go`
-  (`js`): where the settings go, the file picker, who draws the window controls, and whether
-  the device is touch-first. The app only sees `Options`, where a nil `PickFile` means the
-  window cannot open files, so nothing offers to, and `TouchFirst` hides what only a keyboard
+  (`js`): where the settings go, the file picker, who draws the window controls, whether
+  the device is touch-first, and how screen readers hear the game. The app only sees `Options`,
+  where a nil `PickFile` means the window cannot open files, so nothing offers to, `Announce`
+  reaches a browser's screen readers through a live region, since they cannot see the canvas,
+  and `TouchFirst` hides what only a keyboard
   can use (`keysTaught`) until a key is pressed. Check both with `go vet ./... && GOOS=js GOARCH=wasm go vet .`.
 - Browsers never give a page Ctrl+N, Ctrl+T or Ctrl+W, so no shortcut may use them.
 - A tab can be any size, below the desktop window's minimum, so anything sized from the

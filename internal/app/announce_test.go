@@ -128,3 +128,19 @@ func TestNothingIsReadOutBehindTheResetQuestion(t *testing.T) {
 		t.Errorf("heard %q", said)
 	}
 }
+
+// A browser's screen readers cannot see the canvas, so what the window
+// reads out also goes to Options.Announce, word for word.
+func TestWhatIsReadOutAlsoGoesToTheAnnouncer(t *testing.T) {
+	var sent []string
+	a := New(settings.Settings{}, Options{Announce: func(text string) { sent = append(sent, text) }})
+	tt := ui.NewTester(a.View, 1000, 800)
+	tt.Frame()
+	tt.Announcements()
+	sent = nil
+	tt.Key(0, ui.KeyZ)
+	tt.Key(0, ui.KeyQ)
+	if heard := tt.Announcements(); len(heard) == 0 || !slices.Equal(sent, heard) {
+		t.Errorf("sent %q, the window read %q", sent, heard)
+	}
+}

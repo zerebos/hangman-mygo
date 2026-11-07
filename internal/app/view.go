@@ -117,7 +117,11 @@ func (a *App) View(c *ui.Context) {
 	// Last, so what the keys and the clicks of this frame did is read out
 	// in this frame.
 	if len(a.announcement) > 0 {
-		c.Announce(strings.Join(a.announcement, " "))
+		text := strings.Join(a.announcement, " ")
+		c.Announce(text)
+		if a.opts.Announce != nil {
+			a.opts.Announce(text)
+		}
 		a.announcement = nil
 	}
 }
