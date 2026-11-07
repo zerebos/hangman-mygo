@@ -97,6 +97,13 @@ past its ends, as if drawn with a marker.
 With the desktop's reduce-motion setting on, nothing travels. Fades still
 fade in place.
 
+A screen reader hears the game as it goes: each guess and what it found
+("A is in the word, 3 letters", "Z is not in the word. 5 guesses left."),
+hints, the clue, the end of each word with its points, each new word, a new
+best streak, and the match's result. The played keys, the word and the
+gallows also say what they are. In a browser, mygo does not reach screen
+readers yet, so this is the desktop's for now.
+
 ## Sound
 
 Every cue is synthesized by the game itself, in

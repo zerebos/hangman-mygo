@@ -107,6 +107,9 @@ type App struct {
 	fade themeState
 	// confirmReset is whether the Reset stats question is open.
 	confirmReset bool
+	// announcement is what screen readers are to read out on the next
+	// frame (see say).
+	announcement []string
 	// keysPressed is whether a key has played the game since launch, which
 	// on a touch-first device means a keyboard is attached after all.
 	keysPressed bool
@@ -157,13 +160,19 @@ func (a *App) guess(letter rune) {
 	switch out.Result {
 	case game.Correct:
 		a.play(sounds.Wood.Right(a.rightStep()), 0)
+		a.say(rightGuess(a.game, upper(letter)))
 	case game.Wrong:
 		a.play(sounds.Wood.Wrong(a.wrongStep()), 0)
+		a.say(wrongGuess(a.game, upper(letter)))
 	}
 	a.playWordEnd(out.Word)
+	if out.Word != game.InPlay {
+		a.say(wordEndSaid(a.game, earned, false))
+	}
 	if best := a.session.Stats().BestStreak; isNewBest(bestBefore, best) {
 		a.best = bestMoment{from: bestBefore, to: best}
 		a.play(sounds.Wood.NewBest(), newBestDelay)
+		a.say(newBestSaid(best))
 	}
 
 	switch {
@@ -194,6 +203,7 @@ func (a *App) hint() {
 	}
 	a.lastGuess = out.Letter
 	a.play(sounds.Wood.Hint(a.rightStep(), a.wrongStep()), 0)
+	a.say(hintGivenSaid(a.game, out.Letter))
 	a.notice = good(hintGiven + " " + string(out.Letter) + ".")
 	a.persist()
 }
@@ -241,6 +251,7 @@ func (a *App) showClue() {
 	if canShowClue(a.game, a.clueShown) {
 		a.clueShown = true
 		a.play(sounds.Wood.Clue(), 0)
+		a.say("Clue: " + a.game.Clue())
 	}
 }
 
@@ -257,6 +268,7 @@ func (a *App) giveUp() {
 	a.record(game.Lost, match)
 	a.notice = bad(gaveUp)
 	a.play(sounds.Wood.WordLost(), 0)
+	a.say(wordEndSaid(a.game, 0, true))
 	a.persist()
 }
 
@@ -290,6 +302,11 @@ func (a *App) showSummary() {
 		return
 	}
 	a.summaryShown = true
+	headline, _ := matchHeadline(a.game)
+	a.say(headline)
+	if n := matchSummary(a.game, a.session); n != nil {
+		a.say(n.text)
+	}
 	if a.game.MatchOutcome() == game.MatchWon {
 		a.confetti = newConfetti()
 		a.play(sounds.Wood.MatchWon(), 0)
@@ -328,6 +345,10 @@ func (a *App) playAgain() {
 // cue plays.
 func (a *App) freshWord(n *notice) {
 	a.play(sounds.Wood.NewWord(), 0)
+	if n != nil {
+		a.say(n.text)
+	}
+	a.say(dealtSaid(a.game))
 	a.gaveUpFrom = -1
 	a.deal++
 	a.summaryShown = false

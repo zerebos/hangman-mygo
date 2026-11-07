@@ -2,6 +2,7 @@ package app
 
 import (
 	"runtime"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -80,6 +81,7 @@ func (a *App) View(c *ui.Context) {
 		c.Toast(a.toast)
 		a.toast = ""
 	}
+
 	if a.handleKeys(c) {
 		a.keysPressed = true
 	}
@@ -110,6 +112,13 @@ func (a *App) View(c *ui.Context) {
 
 	if ui.AlertDialog(c, &a.confirmReset, resetTitle, resetStatsSummary(a.session.Stats()), resetCancel, resetOK) == 1 {
 		a.resetStats()
+	}
+
+	// Last, so what the keys and the clicks of this frame did is read out
+	// in this frame.
+	if len(a.announcement) > 0 {
+		c.Announce(strings.Join(a.announcement, " "))
+		a.announcement = nil
 	}
 }
 

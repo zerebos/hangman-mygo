@@ -13,12 +13,13 @@ import (
 // counting up one after another, and the way into the next match.
 func (a *App) summary(c *ui.Context, p palette) {
 	g := a.game
-	headline, tone := "A tie!", p.blue
-	switch g.MatchOutcome() {
+	headline, outcome := matchHeadline(g)
+	tone := p.blue
+	switch outcome {
 	case game.MatchWon:
-		headline, tone = "You won the match!", p.Success
+		tone = p.Success
 	case game.MatchLost:
-		headline, tone = "You lost the match", p.Danger
+		tone = p.Danger
 	}
 	s := a.session.Stats()
 
@@ -70,6 +71,19 @@ func (a *App) summary(c *ui.Context, p palette) {
 	})
 	if g.MatchOutcome() == game.MatchWon {
 		confetti(c, a.confetti, a.deal)
+	}
+}
+
+// matchHeadline is what the summary says of the match over, and how it
+// went.
+func matchHeadline(g *game.Game) (string, game.MatchOutcome) {
+	switch o := g.MatchOutcome(); o {
+	case game.MatchWon:
+		return "You won the match!", o
+	case game.MatchLost:
+		return "You lost the match", o
+	default:
+		return "A tie!", o
 	}
 }
 
